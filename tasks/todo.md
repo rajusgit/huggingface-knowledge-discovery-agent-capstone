@@ -64,7 +64,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run python standalone-scripts/ingest.py --source <id>` then row count > 0; `uv run pytest tests/test_chunking.py -q`
 **Dependencies:** T3 · **Files:** `src/ingest.py`, `src/chunking.py`, `src/embed.py` (read model from config), `standalone-scripts/ingest.py`, `tests/test_chunking.py` · **Scope:** M
 
-### - [ ] T6: Dense retrieval + cited answer CLI
+### - [x] T6: Dense retrieval + cited answer CLI
 **Description:** Evolve `search_knowledge` into `src/retrieval.py` (Q1, agreed; `src/tools.py` is deleted): pgvector cosine over the active run (or a given `run_id`), `score_threshold`, category filter. Answer prompt with numbered context and required citations (course: rag.ipynb `retrieve → build_context`). Remove `get_table_schema`/`validate_sql`.
 **Acceptance criteria:**
 - [ ] Returns `chunk_id, source_url, heading_path, revision, content, score`, excluding `deleted_at` rows

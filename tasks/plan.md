@@ -77,7 +77,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 
 ### Phase 1: Thin Learn slice (end-to-end)
 - [x] T5: Ingest one approved doc page → hierarchical chunks → active run
-- [ ] T6: Dense retrieval + cited answer CLI
+- [x] T6: Dense retrieval + cited answer CLI
 - [ ] T7: FastAPI `/api/chat` (RAG-only, SSE streaming)
 - [ ] T8: React chat shell with citation drawer
 
