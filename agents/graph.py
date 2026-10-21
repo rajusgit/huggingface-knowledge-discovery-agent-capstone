@@ -48,6 +48,7 @@ class State(TypedDict, total=False):
     use_history: bool
     history: Annotated[list[dict], operator.add]
     routes: list[str]
+    route_scores: dict
     chunks: list[dict]
     live: list[dict]
     tool_calls: list[dict]
@@ -128,7 +129,7 @@ def build_graph(router, tools, checkpointer, guard):
 
     def classify_intent(state: State):
         intent = router.classify(state["question"])
-        return {"routes": intent.routes, "chunks": [], "live": [], "tool_calls": [], "refused": False, "answer": "",
+        return {"routes": intent.routes, "route_scores": intent.scores, "chunks": [], "live": [], "tool_calls": [], "refused": False, "answer": "",
                 "citations": [], "invalid_citations": [], "live_sources": [], "bench_plan": {},
                 "bench_jobs": [], "benchmarks": []}
 
@@ -147,7 +148,7 @@ def build_graph(router, tools, checkpointer, guard):
     def after_plan(state: State) -> str:
         if state.get("refused"):
             return "validate_evidence"
-        return "authorize_benchmark" if "evaluate" in state["routes"] else "retrieve_docs"   # else: fell back
+        return "authorize_benchmark" if "evaluate" in state["routes"] else after_classify(state)   # else: fell back
 
     def retrieve_docs(state: State):
         hits = [c for c in retrieval.retrieve(state["question"]) if c.get("content")]
@@ -206,13 +207,17 @@ def build_graph(router, tools, checkpointer, guard):
         models_raw = data.get("models") or []
         if not data.get("is_benchmark_request", bool(models_raw)):
             # The router's "evaluate" was a false alarm (e.g. "evaluate" in a docs question): answer normally.
-            rest = [r for r in state["routes"] if r != "evaluate"]
-            return {"routes": sorted(set(rest) | {"learn", "discover"})}
+            scores = {r: s for r, s in state.get("route_scores", {}).items() if r != "evaluate"}
+            return {"routes": [max(scores, key=scores.get)] if scores else ["learn"]}   # the router's runner-up
         if not datasets:
             return _refuse("No benchmark datasets are available yet, so I can't run a benchmark.")
         # LLM output is untrusted: only allowlisted models / existing datasets survive.
-        models = [m for m in dict.fromkeys(data.get("models") or [])
-                  if isinstance(m, str) and m in bcfg.allowed_models][:bcfg.max_models_per_benchmark]
+        named = [m for m in dict.fromkeys(models_raw) if isinstance(m, str) and m.strip()]
+        unlisted = [m for m in named if m not in bcfg.allowed_models]
+        if unlisted:  # never run a partial benchmark behind the user's back
+            return _refuse(f"These models are not on the benchmark allowlist: {', '.join(unlisted)}. "
+                           f"Allowed models: {', '.join(bcfg.allowed_models)}. Available datasets: {', '.join(datasets) or 'none'}.")
+        models = named[:bcfg.max_models_per_benchmark]
         dataset = data.get("dataset") if data.get("dataset") in datasets else (datasets[0] if len(datasets) == 1 else None)
         if not models or not dataset:
             return _refuse("Tell me which models and which dataset to benchmark. "
@@ -318,7 +323,7 @@ def build_graph(router, tools, checkpointer, guard):
                             ["retrieve_docs", "call_mcp_tools", "plan_benchmark", "validate_evidence"])
     g.add_conditional_edges("retrieve_docs", after_docs, ["call_mcp_tools", "validate_evidence"])
     g.add_edge("call_mcp_tools", "validate_evidence")
-    g.add_conditional_edges("plan_benchmark", after_plan, ["authorize_benchmark", "validate_evidence", "retrieve_docs"])
+    g.add_conditional_edges("plan_benchmark", after_plan, ["authorize_benchmark", "validate_evidence", "retrieve_docs", "call_mcp_tools"])
     g.add_conditional_edges("authorize_benchmark", unless_refused("enqueue_job"),
                             ["enqueue_job", "validate_evidence"])
     g.add_conditional_edges("enqueue_job", unless_refused("poll_results"), ["poll_results", "validate_evidence"])

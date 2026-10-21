@@ -12,8 +12,7 @@ from agents import graph, mcp_tools, memory  # noqa: E402
 
 
 async def main(use_memory: bool) -> None:
-    tools = await mcp_tools.load_tools()
-    async with memory.postgres_checkpointer() as saver:
+    async with mcp_tools.open_tools() as tools, memory.postgres_checkpointer() as saver:
         agent = graph.build_agent(tools=tools, checkpointer=saver)
         thread = str(uuid.uuid4())
         for line in sys.stdin:

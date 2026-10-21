@@ -15,8 +15,17 @@ EXPECTED = {"search_models", "search_embedding_models", "get_model_details",
             "search_datasets", "get_dataset_details", "search_docs"}
 
 
+async def _tool_names(restricted=False, timeout=120):
+    async with mcp_tools.open_tools(restricted=restricted) as tools:
+        return tools
+
+
+def _open(restricted=False):
+    return asyncio.run(asyncio.wait_for(_tool_names(restricted), 120))
+
+
 def test_mcp_tools_load_and_convert_to_openai_format():
-    tools = asyncio.run(asyncio.wait_for(mcp_tools.load_tools(), 120))
+    tools = _open()
     assert EXPECTED <= {t.name for t in tools}
     for t in tools:
         spec = convert_to_openai_tool(t)
@@ -61,7 +70,7 @@ def test_postgres_checkpointer_remembers_across_turns(monkeypatch):
 
 
 def test_benchmark_tool_is_not_exposed_to_the_llm_by_default():
-    default = {t.name for t in asyncio.run(asyncio.wait_for(mcp_tools.load_tools(), 120))}
+    default = {t.name for t in _open()}
     assert "benchmark_embedding_model" not in default           # needs human approval (T15)
-    everything = {t.name for t in asyncio.run(asyncio.wait_for(mcp_tools.load_tools(restricted=True), 120))}
+    everything = {t.name for t in _open(restricted=True)}
     assert "benchmark_embedding_model" in everything

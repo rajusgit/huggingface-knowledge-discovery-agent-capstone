@@ -33,10 +33,17 @@ provisioned = not dataset.exists()
 if provisioned:
     dataset.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(config.ROOT / "tests" / "fixtures" / "bench_tiny.json", dataset)
+
+
+async def main() -> dict:
+    # one event loop and one MCP server process for the whole run (see agents/mcp_tools.py)
+    async with mcp_tools.open_tools() as tools:
+        print(f"{len(items)} items, tools: {[t.name for t in tools]}", flush=True)
+        return await agent_eval.run_all(graph.build_agent(tools=tools), items)
+
+
 try:
-    tools = asyncio.run(mcp_tools.load_tools())
-    print(f"{len(items)} items, tools: {[t.name for t in tools]}", flush=True)
-    result = agent_eval.run_all(graph.build_agent(tools=tools), items)
+    result = asyncio.run(main())
 finally:
     if provisioned:
         dataset.unlink(missing_ok=True)

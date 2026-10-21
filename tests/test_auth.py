@@ -75,7 +75,7 @@ def test_the_app_refuses_to_start_before_loading_anything_heavy(monkeypatch):
     monkeypatch.setattr(config.settings.api, "auth_enabled", True)
     monkeypatch.setattr(config.settings, "api_key", None)
     from agents import mcp_tools
-    monkeypatch.setattr(mcp_tools, "load_tools", lambda *a, **k: pytest.fail("startup must fail first"))
+    monkeypatch.setattr(mcp_tools, "open_tools", lambda *a, **k: pytest.fail("startup must fail first"))
 
     async def start():
         async with api.lifespan(api.app):

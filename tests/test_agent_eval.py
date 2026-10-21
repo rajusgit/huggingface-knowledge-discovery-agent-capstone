@@ -5,7 +5,7 @@ from observability import agent_eval as ae
 
 def row(**kw):
     base = {"routes": [], "live": [], "tool_calls": [], "interrupt": None, "answer": "", "guard_events": [],
-            "latency_ms": 100, "error": None, "benchmarks": []}
+            "latency_ms": 100, "error": None, "benchmarks": [], "citations": []}
     return base | kw
 
 
@@ -115,3 +115,29 @@ def test_summary_lists_the_slowest_items():
 def test_tool_prompt_steers_comparisons_to_compare_resources_with_constraints():
     from src import prompts
     assert "compare_resources" in prompts.SYSTEM_TOOLS and "constraints" in prompts.SYSTEM_TOOLS
+
+
+def test_unanswerable_may_look_things_up_but_must_not_run_side_effects():
+    un = item("unanswerable", should_refuse=True, tools=[])
+    lookup = row(answer="Based on the documentation, there is no information about that.", tool_calls=[{"tool": "search_docs", "ok": True}])
+    assert ae.score(un, lookup)["refused"] is True
+    sidefx = row(answer="There is no information about that.", tool_calls=[{"tool": "benchmark_embedding_model", "ok": True}])
+    assert ae.score(un, sidefx)["refused"] is False
+    assert ae.score(un, row(answer="There is no information.", interrupt={"type": "benchmark_approval"}))["refused"] is False
+
+
+def test_comparison_reports_whether_the_requested_constraint_keys_were_passed_even_if_values_differ():
+    it = item("comparison", tools=["compare_resources"], model_ids=["a/x", "b/y"], constraints={"max_parameters": 100, "language": "en"})
+    other_value = row(live=[live("compare_resources", ids=["a/x", "b/y"], constraints={"max_parameters": 150, "language": "en"})])
+    s = ae.score(it, other_value)
+    assert s["constraints_ok"] is False and s["constraint_keys_ok"] is True
+    assert ae.score(it, row(live=[live("compare_resources", ids=["a/x", "b/y"], constraints={"language": "en"})]))["constraint_keys_ok"] is False
+
+
+def test_doc_qa_is_grounded_if_the_expected_source_was_cited_or_returned_by_a_docs_lookup():
+    it = item("doc_qa", source_ids=["s1"], keywords=["k"])
+    cited = row(citations=[{"source_id": "s1"}])
+    looked_up = row(live=[{"tool": "search_docs", "args": {}, "result": [{"source_id": "s1", "content": "x"}]}])
+    elsewhere = row(citations=[{"source_id": "other"}], live=[{"tool": "search_docs", "args": {}, "result": [{"source_id": "other"}]}])
+    assert ae.score(it, cited)["grounded"] is True and ae.score(it, looked_up)["grounded"] is True
+    assert ae.score(it, elsewhere)["grounded"] is False

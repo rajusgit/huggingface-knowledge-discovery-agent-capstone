@@ -37,8 +37,7 @@ async def lifespan(app: FastAPI):
     from agents import graph, mcp_tools, memory
 
     auth.check_startup()
-    tools = await mcp_tools.load_tools()
-    async with memory.postgres_checkpointer() as saver:
+    async with mcp_tools.open_tools() as tools, memory.postgres_checkpointer() as saver:
         app.state.agent = graph.build_agent(tools=tools, checkpointer=saver)
         yield
 

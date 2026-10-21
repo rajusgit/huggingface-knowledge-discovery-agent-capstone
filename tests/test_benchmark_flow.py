@@ -97,7 +97,7 @@ def test_llm_proposed_parameters_are_validated_against_allowlists(bench, monkeyp
     llm_script(monkeypatch, {"models": ["evil/backdoor", M1], "dataset": "bench_tiny"})
     agent, _ = agent_with()
     out = asyncio.run(agent.ainvoke("benchmark evil/backdoor and the first", "T"))
-    assert out["interrupt"]["models"] == [M1]                    # unknown model silently dropped
+    assert out["interrupt"] is None and bench["create"] == [] and "evil/backdoor" in out["answer"]   # refused, not run
 
 
 def test_nothing_valid_asks_for_clarification_without_interrupt(bench, monkeypatch):
@@ -278,3 +278,29 @@ def test_a_real_benchmark_request_still_pauses_for_approval(bench, monkeypatch):
     llm_script(monkeypatch, {"is_benchmark_request": True, "models": [M1], "dataset": "bench_tiny"})
     agent, _ = agent_with()
     assert asyncio.run(agent.ainvoke("benchmark it", "T"))["interrupt"]["type"] == "benchmark_approval"
+
+
+def test_fallback_uses_the_routers_next_best_route_not_everything(bench, monkeypatch):
+    """A false 'evaluate' should become what the router thought second, not 'docs AND tools'."""
+    class R2:
+        def classify(self, t):
+            return Intent(["evaluate"], {"evaluate": 0.60, "discover": 0.55, "learn": 0.30, "compare": 0.20})
+    monkeypatch.setattr(retrieval, "retrieve", lambda *a, **k: pytest.fail("a discovery question must not run docs retrieval"))
+    llm_script(monkeypatch, {"is_benchmark_request": False, "models": [], "dataset": None})
+    agent = g.build_agent(router=R2(), tools=[], checkpointer=InMemorySaver())
+    out = asyncio.run(agent.ainvoke("List zero-shot classification models", "T"))
+    assert out["routes"] == ["discover"]
+
+
+def test_a_model_that_is_not_allowlisted_gets_a_clarification_not_a_partial_proposal(bench, monkeypatch):
+    """Regression: 'benchmark bge-small and gte-small' silently proposed only bge-small."""
+    llm_script(monkeypatch, {"is_benchmark_request": True, "models": [M1, "thenlper/gte-small"], "dataset": "bench_tiny"})
+    agent, _ = agent_with()
+    out = asyncio.run(agent.ainvoke("benchmark both", "T"))
+    assert out["interrupt"] is None and bench["create"] == []
+    assert "thenlper/gte-small" in out["answer"] and "allowlist" in out["answer"].lower() and M1 in out["answer"]
+
+
+def test_planner_prompt_asks_for_models_as_named_when_they_are_not_in_the_list():
+    from src import prompts
+    assert "verbatim" in prompts.SYSTEM_PLAN_BENCH
