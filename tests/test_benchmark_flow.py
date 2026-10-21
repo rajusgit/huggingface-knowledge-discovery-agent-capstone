@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from agents import graph as g
 from agents.router import Intent
-from src import api, config, llm, prompts, retrieval
+from src import api, config, llm, retrieval
 from tools import benchmarks
 
 ALLOWED = config.settings.benchmarks.allowed_models
@@ -171,7 +171,7 @@ class FakeAgent:
 
 
 def sse(resp):
-    return [json.loads(l[6:]) for l in resp.text.splitlines() if l.startswith("data: ")]
+    return [json.loads(line[6:]) for line in resp.text.splitlines() if line.startswith("data: ")]
 
 
 @pytest.fixture

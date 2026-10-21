@@ -9,7 +9,6 @@ selection, and a check that every citation URL actually resolves (broken ones ar
 import argparse
 import json
 import sys
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 

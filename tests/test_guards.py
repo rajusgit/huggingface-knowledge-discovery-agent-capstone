@@ -8,7 +8,6 @@ from agents.router import Intent
 from observability import golden
 from src import config, llm, prompts, retrieval
 
-
 # ---- PII masking ----------------------------------------------------------------------------------
 
 def test_masks_emails_cards_phones_and_secrets():

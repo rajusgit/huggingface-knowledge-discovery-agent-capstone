@@ -11,6 +11,7 @@ dependencies = [
     "pgvector>=0.3",
     "openai>=3.35.1",
     "docling>=2.141.0",
+    "torch>=2.4",   # direct so [tool.uv.sources] can select the CPU-only wheel on Linux
     "sentence-transformers>=6.1.0",
     "fastapi>=0.156.4",
     "uvicorn>=0.54.0",
@@ -23,7 +24,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.17.1",
+]
 
 [tool.uv]
 package = false
@@ -31,3 +35,24 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+extend-exclude = ["ui", "data", "standalone-scripts/huggingface_seeding_script.py"]   # the last one is the developer's file: never touch it
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501", "B008", "B904", "B905"]   # long lines are fine; FastAPI's Depends/Query defaults; raise-from style
+
+[tool.ruff.lint.per-file-ignores]
+"standalone-scripts/*" = ["E402"]            # they add the repo root to sys.path before importing
+"tests/*" = ["E402", "B011", "E731", "B023"]
+
+# Linux (CI, Railway) gets the CPU-only torch wheel: no multi-GB CUDA downloads. macOS keeps PyPI's.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

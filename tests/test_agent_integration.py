@@ -9,6 +9,7 @@ from agents import graph as g
 from agents import mcp_tools, memory
 from agents.router import Intent
 from src import llm, retrieval
+from tests.conftest import needs_db
 
 EXPECTED = {"search_models", "search_embedding_models", "get_model_details",
             "search_datasets", "get_dataset_details", "search_docs"}
@@ -22,6 +23,7 @@ def test_mcp_tools_load_and_convert_to_openai_format():
         assert spec["function"]["name"] == t.name and spec["function"]["parameters"]["type"] == "object"
 
 
+@needs_db
 def test_postgres_checkpointer_remembers_across_turns(monkeypatch):
     seen = []
     monkeypatch.setattr(retrieval, "search_knowledge", lambda *a, **k: [

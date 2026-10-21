@@ -1,6 +1,5 @@
 import json
 import sys
-import uuid
 
 import psycopg
 import pytest
@@ -27,6 +26,7 @@ def test_metrics_on_a_hand_example():
 
 def fake_encode(texts):
     import hashlib
+
     import numpy as np
     out = []
     for t in texts:
@@ -86,6 +86,9 @@ def jobs(monkeypatch):
 
 
 def _db_ok():
+    from tests.conftest import NO_DB
+    if NO_DB:
+        return False
     try:
         psycopg.connect(config.settings.dsn, connect_timeout=10).close()
         return True

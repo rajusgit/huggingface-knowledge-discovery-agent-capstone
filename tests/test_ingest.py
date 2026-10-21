@@ -3,7 +3,6 @@ import pytest
 from pgvector.psycopg import register_vector
 
 from src import config, ingest
-from src.chunking import Chunk
 
 SRC = ingest.Source(
     source_id="test-src", repo="o/r", path="docs/a.md", ref="v1",

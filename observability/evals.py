@@ -288,7 +288,7 @@ def apply_winner(v: Variant, experiment_id: str, path=None) -> None:
     block, tail = re.split(r"(?=\n\S)", rest, maxsplit=1)
     block = re.sub(r"^  # eval-winner:.*\n", "", block, flags=re.M)
     for key, val in (("mode", f'"{v.mode}"'), ("chunker", f'"{v.chunker}"'), ("rerank", "true" if v.rerank else "false")):
-        block, n = re.subn(rf"^(  {key}:\s*)\S+", lambda m: m.group(1) + val, block, count=1, flags=re.M)
+        block, n = re.subn(rf"^(  {key}:\s*)\S+", lambda m, val=val: m.group(1) + val, block, count=1, flags=re.M)
         assert n == 1, f"retrieval.{key} not found in config.yaml"
     block = f"  # eval-winner: {experiment_id} ({v.name})\n" + block.lstrip("\n")
     path.write_text(head + "\nretrieval:\n" + block + tail)

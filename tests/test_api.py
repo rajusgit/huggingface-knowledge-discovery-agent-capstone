@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src import api
+from tests.conftest import needs_db
 from tools import hf_client
 
 CITE = {"chunk_id": "a", "source_url": "https://x/a", "heading_path": ["T", "A"], "revision": "r1",
@@ -39,7 +40,7 @@ class FakeAgent:
 
 
 def sse(resp):
-    return [json.loads(l[6:]) for l in resp.text.splitlines() if l.startswith("data: ")]
+    return [json.loads(line[6:]) for line in resp.text.splitlines() if line.startswith("data: ")]
 
 
 @pytest.fixture
@@ -176,6 +177,7 @@ def test_upstream_failure_is_502_without_internals(monkeypatch, client):
     assert r.status_code == 502
 
 
+@needs_db
 def test_persist_writes_session_and_messages_to_postgres():
     import uuid as _uuid
 

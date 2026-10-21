@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from docling.chunking import HierarchicalChunker
 from docling.datamodel.base_models import DocumentStream
 from docling.document_converter import DocumentConverter
-
 from langsmith import traceable
 
 from src import config

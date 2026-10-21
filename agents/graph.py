@@ -18,11 +18,11 @@ import time
 from typing import Annotated, TypedDict
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from langsmith import traceable
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
+from langsmith import traceable
 
 from agents import guards as guards_mod
 from agents import router as router_mod
@@ -182,7 +182,7 @@ def build_graph(router, tools, checkpointer, guard):
                     text = json.dumps({"error": f"tool call failed: {type(e).__name__}: {e}"})
                 messages.append({"role": "tool", "tool_call_id": call["id"],
                                  "content": prompts.wrap_untrusted(text[:cfg.max_tool_result_chars])})
-        return {"live": live, "live_sources": [s for l in live for s in _live_sources(l["tool"], l["result"])]}
+        return {"live": live, "live_sources": [s for item in live for s in _live_sources(item["tool"], item["result"])]}
 
     # ---- benchmarks: plan -> human approval -> enqueue -> poll -------------------------------
 
@@ -256,7 +256,7 @@ def build_graph(router, tools, checkpointer, guard):
         if state["chunks"]:
             parts.append("Documentation passages:\n" + prompts.context_block(state["chunks"]))
         if state["live"]:
-            data = json.dumps([{"tool": l["tool"], "args": l["args"], "result": l["result"]} for l in state["live"]],
+            data = json.dumps([{"tool": x["tool"], "args": x["args"], "result": x["result"]} for x in state["live"]],
                               default=str)[:cfg.max_tool_result_chars * 2]
             parts.append("Live Hugging Face data:\n" + prompts.wrap_untrusted(data))
         if state["benchmarks"]:

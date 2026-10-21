@@ -2,7 +2,6 @@ import asyncio
 import json
 from types import SimpleNamespace
 
-import pytest
 from langchain_core.tools import StructuredTool
 from langsmith import Client
 
@@ -10,7 +9,7 @@ from agents import graph as g
 from agents import guards
 from agents.router import Intent
 from observability import tracing
-from src import config, llm, pii, prompts, retrieval
+from src import config, llm, retrieval
 
 EMAIL, KEY = "jane.doe@example.com", "sk-abcdefghijklmnopqrstuvwxyz123456"
 

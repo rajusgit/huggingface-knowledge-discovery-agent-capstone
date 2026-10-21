@@ -1,17 +1,14 @@
 """Red-team suite. Deterministic cases always run; the live-LLM ones need RUN_LIVE_LLM=1.
 standalone-scripts/run_redteam.py runs everything and writes observability/reports/redteam.md."""
 import asyncio
-import json
 import os
 
 import pytest
 from langchain_core.tools import StructuredTool
 
-from agents import graph as g
 from agents import guards, tool_safety
-from agents.router import Intent
 from observability import golden, redteam
-from src import config, llm, prompts, retrieval
+from src import llm
 from tools import benchmarks, hf_client
 
 LIVE = pytest.mark.skipif(not os.environ.get("RUN_LIVE_LLM"), reason="live LLM test; set RUN_LIVE_LLM=1")

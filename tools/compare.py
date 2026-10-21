@@ -24,7 +24,7 @@ def _check(row: dict, c: dict) -> dict:
     if "language" in c:
         if row["languages"] is None:
             unknown.append("language")
-        elif c["language"].lower() not in {l.lower() for l in row["languages"]}:
+        elif c["language"].lower() not in {lang.lower() for lang in row["languages"]}:
             violations.append(f"language {c['language']} not supported (has {row['languages']})")
     if "task" in c:
         if row["pipeline_tag"] is None:

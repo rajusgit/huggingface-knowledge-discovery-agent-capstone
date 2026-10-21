@@ -226,7 +226,7 @@ def run_job(job: uuid.UUID) -> None:
         return _finish(job, "failed", error=f"could not start worker: {type(e).__name__}: {e}"[:MAX_ERROR_CHARS])
     if proc.returncode != 0:
         return _finish(job, "failed", error=(proc.stderr or f"exit code {proc.returncode}")[-MAX_ERROR_CHARS:])
-    line = next((l for l in reversed(proc.stdout.splitlines()) if l.startswith("{")), None)
+    line = next((ln for ln in reversed(proc.stdout.splitlines()) if ln.startswith("{")), None)
     try:
         res = json.loads(line)
         metrics = {**res["metrics"], "timing": res["timing"], "n_docs": res["n_docs"],

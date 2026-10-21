@@ -96,6 +96,7 @@ def test_recursive200_respects_size_and_overlaps():
 
 def test_hybrid128_chunks_fit_the_token_budget_and_keep_headings():
     from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+
     from src import config
     chunks = _all("hybrid128")
     assert chunks and all(c.heading_path for c in chunks)

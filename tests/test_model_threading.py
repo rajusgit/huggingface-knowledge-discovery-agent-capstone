@@ -3,9 +3,9 @@ loading and concurrent inference crashed the interpreter (SIGSEGV) on macOS."""
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 import numpy as np
-from types import SimpleNamespace
 
 from src import embed, rerank
 
