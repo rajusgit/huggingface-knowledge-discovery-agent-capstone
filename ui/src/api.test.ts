@@ -35,3 +35,31 @@ describe('splitCitations with comma lists', () => {
     expect(splitCitations('see [1, 6].')).toEqual([{ text: 'see ' }, { n: 1 }, { n: 6 }, { text: '.' }])
   })
 })
+
+import { buildSearchUrl, threadIdFor } from './api'
+
+describe('buildSearchUrl', () => {
+  it('maps filters 1:1 to API params and omits empty ones', () => {
+    const u = new URL(buildSearchUrl('models', { q: 'multi', task: 'sentence-similarity', library: '', language: 'fr', sort: 'likes', limit: 5 }), 'http://x')
+    expect(u.pathname).toBe('/api/models/search')
+    expect(Object.fromEntries(u.searchParams)).toEqual({ q: 'multi', task: 'sentence-similarity', language: 'fr', sort: 'likes', limit: '5' })
+  })
+  it('datasets only send the filters the datasets API supports', () => {
+    const u = new URL(buildSearchUrl('datasets', { q: 'squad', task: 'qa', library: 'x', language: 'en', license: 'mit' }), 'http://x')
+    expect(u.pathname).toBe('/api/datasets/search')
+    expect(Object.fromEntries(u.searchParams)).toEqual({ q: 'squad', language: 'en', license: 'mit' })
+  })
+  it('encodes values', () => {
+    expect(buildSearchUrl('models', { q: 'a&b=c' })).toContain('q=a%26b%3Dc')
+  })
+})
+
+describe('threadIdFor', () => {
+  it('keeps one thread while memory is on', () => {
+    expect(threadIdFor(true, 'stable')).toBe('stable')
+  })
+  it('uses a fresh thread for every message while memory is off', () => {
+    expect(threadIdFor(false, 'stable')).not.toBe('stable')
+    expect(threadIdFor(false, 'stable')).not.toBe(threadIdFor(false, 'stable'))
+  })
+})

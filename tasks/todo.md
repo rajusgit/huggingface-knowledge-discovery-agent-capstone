@@ -123,7 +123,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_api.py -q`; manual curl of both search endpoints
 **Dependencies:** T7, T10 · **Files:** `src/api.py`, `tests/test_api.py` · **Scope:** S
 
-### - [ ] T12: UI discovery panel + memory toggle
+### - [x] T12 (unit tests + build verified; browser check manual; no size-budget filter: Hub list API has no parameter counts): UI discovery panel + memory toggle
 **Description:** Discovery page with filters (task, license, language, size budget), model/dataset result cards with `fetched_at` and a "time-sensitive" label on downloads/likes; memory on/off toggle (default off) that sends a fresh `thread_id` when off.
 **Acceptance criteria:**
 - [ ] Filters map 1:1 to API query params; empty results show a no-results state

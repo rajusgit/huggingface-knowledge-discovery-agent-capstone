@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { splitCitations, streamChat, type Citation } from '../api'
+import { safeUrl, splitCitations, streamChat, threadIdFor, type Citation, type LiveSource } from '../api'
 import Citations from './Citations'
 
 interface Turn {
   question: string
   answer: string
   citations: Citation[]
+  live: LiveSource[]
   error?: string
   done: boolean
 }
@@ -14,7 +15,8 @@ export default function Chat() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [active, setActive] = useState<number | null>(null)
-  const threadId = useRef(crypto.randomUUID())
+  const [memory, setMemory] = useState(false)
+  const stableThread = useRef(crypto.randomUUID())
   const busy = turns.length > 0 && !turns[turns.length - 1].done
 
   const patchLast = (f: (t: Turn) => Turn) =>
@@ -25,12 +27,12 @@ export default function Chat() {
     if (!question || busy) return
     setInput('')
     setActive(null)
-    setTurns((ts) => [...ts, { question, answer: '', citations: [], done: false }])
+    setTurns((ts) => [...ts, { question, answer: '', citations: [], live: [], done: false }])
     try {
-      for await (const e of streamChat(question, threadId.current)) {
+      for await (const e of streamChat(question, threadIdFor(memory, stableThread.current), memory)) {
         if (e.type === 'token') patchLast((t) => ({ ...t, answer: t.answer + e.text }))
-        else if (e.type === 'final') patchLast((t) => ({ ...t, citations: e.citations, done: true }))
-        else patchLast((t) => ({ ...t, error: e.message, done: true }))
+        else if (e.type === 'final') patchLast((t) => ({ ...t, citations: e.citations, live: e.live_sources, done: true }))
+        else if (e.type === 'error') patchLast((t) => ({ ...t, error: e.message, done: true }))
       }
     } catch (err) {
       patchLast((t) => ({ ...t, error: err instanceof Error ? err.message : 'Request failed', done: true }))
@@ -39,8 +41,11 @@ export default function Chat() {
   }
 
   return (
-    <div className="mx-auto flex h-screen max-w-3xl flex-col px-4 py-4">
-      <h1 className="mb-3 text-xl font-semibold">Hugging Face Knowledge Agent</h1>
+    <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-3xl flex-col px-4 py-2">
+      <label className="mb-2 flex items-center gap-2 text-sm text-slate-600">
+        <input type="checkbox" checked={memory} onChange={(e) => setMemory(e.target.checked)} />
+        Remember this conversation (stored on the server; off by default)
+      </label>
       <div className="flex-1 space-y-6 overflow-y-auto pb-4" aria-live="polite">
         {turns.length === 0 && (
           <p className="text-slate-500">Ask about Transformers, e.g. “How do I limit the length of generated text?”</p>
@@ -67,6 +72,22 @@ export default function Chat() {
             </p>
             {t.error && <p role="alert" className="mt-2 text-red-700">{t.error}</p>}
             <Citations citations={t.citations} active={active} />
+            {t.live.length > 0 && (
+              <div className="mt-3 text-xs text-slate-600">
+                <div className="font-medium">Live Hugging Face data</div>
+                <ul className="list-disc pl-5">
+                  {t.live.slice(0, 8).map((s, k) => {
+                    const href = safeUrl(s.source_url)
+                    return (
+                      <li key={k}>
+                        {href ? <a className="text-blue-700 underline" href={href} target="_blank" rel="noopener noreferrer">{s.source_url}</a> : s.source_url}
+                        {s.fetched_at && <> · fetched {s.fetched_at}</>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         ))}
       </div>
