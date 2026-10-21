@@ -2,10 +2,6 @@
 query both use embedding.model so their vectors can never drift apart. The Semantic Router
 passes its own (router.encoder) model name.
 """
-import os
-
-os.environ.setdefault("HF_HUB_OFFLINE", "1")  # models are cached locally; skip the update check
-
 from sentence_transformers import SentenceTransformer
 
 from src import config

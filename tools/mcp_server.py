@@ -76,7 +76,7 @@ def search_docs(query: str, category: str | None = None, k: int = 5) -> list[dic
 
     if not 1 <= k <= 20:
         raise ValueError("k must be between 1 and 20")
-    return retrieval.search_knowledge(query, category=category, k=k)
+    return retrieval.retrieve(query, category=category, top_n=k)
 
 
 if __name__ == "__main__":
