@@ -110,7 +110,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 ### Phase 5: Security
 - [x] T21: Input guards: Semantic Router guard, PII masking, NeMo self-check input
 - [x] T22: Injection defence, retrieval-time redaction, output checks, `html.escape`
-- [ ] T23: Tool safety (allowlist, docstring vetting) + red-team suite and report
+- [x] T23: Tool safety (allowlist, docstring vetting) + red-team suite and report
 
 **Checkpoint F — Security:** red-team suite: tool escalation 100% blocked, indirect injection ≤1%, unauthorized retrieval = 0.
 

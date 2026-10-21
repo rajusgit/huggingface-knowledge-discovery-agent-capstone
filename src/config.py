@@ -57,6 +57,8 @@ class Guard(BaseModel):
     routes_file: str = "config/guard_routes.yaml"
     threshold: float = 0.40
     self_check: bool = True
+    passage_check: bool = True
+    passage_chars: int = 1200
 
 
 class Agent(BaseModel):
@@ -64,6 +66,7 @@ class Agent(BaseModel):
     max_tool_rounds: int = 3
     max_tool_result_chars: int = 8000
     mcp_module: str = "tools.mcp_server"
+    allowed_tools: list[str] = []
 
 
 class HuggingFace(BaseModel):

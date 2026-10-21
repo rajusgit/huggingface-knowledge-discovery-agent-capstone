@@ -135,6 +135,9 @@ def build_graph(router, tools, checkpointer, guard):
         hits = [c for c in retrieval.retrieve(state["question"]) if c.get("content")]
         redacted = sum(bool(c.get("redacted")) for c in hits)
         events = state.get("guard_events", []) + ([{"type": "retrieval_redacted", "count": redacted}] if redacted else [])
+        if config.settings.guard.passage_check:
+            hits, screen_events = guards_mod.screen_passages(hits)
+            events += screen_events
         return {"chunks": hits, "guard_events": events}
 
     async def call_mcp_tools(state: State):

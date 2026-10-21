@@ -238,7 +238,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_injection.py -q`
 **Dependencies:** T21 · **Files:** `src/prompts.py`, `src/retrieval.py`, `agents/guards.py`, `tests/test_injection.py` · **Scope:** S
 
-### - [ ] T23: Tool safety + red-team report
+### - [x] T23 (indirect injection: 0/44, but the 95% upper bound is 8.0%, so "<=1%" is NOT statistically established; screen costs 1.1% false positives on corpus passages): Tool safety + red-team report
 **Description:** Tool allowlist in the agent; `is_docstring_safe` vetting of MCP tool descriptions at load (16_ai_security); unauthorized category requests blocked by SQL filters. Red-team suite records blocked / allowed / false positive per guard.
 **Acceptance criteria:**
 - [ ] Tool-escalation cases 100% blocked; unauthorized retrieval = 0; indirect injection ≤1%

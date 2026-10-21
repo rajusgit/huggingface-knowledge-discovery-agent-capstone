@@ -52,12 +52,24 @@ guard:
   routes_file: "config/guard_routes.yaml"
   threshold: 0.40                  # min similarity for a blocking route to count
   self_check: true                 # extra LLM policy check on every message (one cheap call)
+  passage_check: true              # one LLM call per doc question: drop retrieved passages that carry instructions for the AI
+  passage_chars: 1200              # characters of each passage shown to that check
 
 agent:
   history_turns: 6                 # past turns shown to the LLM when memory is on
   max_tool_result_chars: 8000      # tool output is truncated to this before the LLM sees it
   max_tool_rounds: 3               # LLM <-> MCP tool-calling rounds per question
   mcp_module: "tools.mcp_server"   # launched as a local stdio MCP server
+  allowed_tools:                   # anything else the MCP server offers is dropped
+    - search_models
+    - search_embedding_models
+    - get_model_details
+    - search_datasets
+    - get_dataset_details
+    - get_card_section
+    - compare_resources
+    - search_docs
+    - benchmark_embedding_model    # restricted: only usable through the human-approval flow
 
 huggingface:
   base_url: "https://huggingface.co"

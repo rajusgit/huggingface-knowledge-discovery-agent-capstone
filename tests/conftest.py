@@ -16,5 +16,6 @@ def _fresh_settings():
     # Guards load an encoder and call an LLM; tests opt in with an explicit Guard instance.
     config.settings.guard.enabled = False
     config.settings.guard.self_check = False
+    config.settings.guard.passage_check = False
     yield
     clear()

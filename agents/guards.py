@@ -6,6 +6,7 @@ Order, cheapest first, all before any retrieval or synthesis:
   3. self-check input              (one LLM policy call via src.llm, NeMo "self check input" style)
 A blocked message gets a refusal; nothing downstream sees its text.
 """
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -135,3 +136,24 @@ class OutputGuard:
         self._check(self.buf)
         out, self.released = self.buf[self.released:], len(self.buf)
         return out
+
+
+def screen_passages(chunks: list[dict]) -> tuple[list[dict], list[dict]]:
+    """One LLM call: drop retrieved passages that carry instructions aimed at the AI (indirect injection).
+    -> (clean chunks, guard events). Fails open (recorded) if the check itself fails."""
+    if not chunks:
+        return chunks, []
+    cap = config.settings.guard.passage_chars
+    body = "\n\n".join(f"[{i}] {c['content'][:cap]}" for i, c in enumerate(chunks, 1))
+    try:
+        out = llm.complete([{"role": "system", "content": prompts.PASSAGE_CHECK_SYSTEM},
+                            {"role": "user", "content": body}], temperature=0)
+        m = re.search(r"\{.*\}", out["content"] or "", re.S)
+        flagged = json.loads(m.group(0))["flagged"]
+        if not isinstance(flagged, list) or not all(isinstance(n, int) for n in flagged):
+            raise ValueError("bad shape")
+    except Exception as e:  # ponytail: fail open; the other layers (fencing, output guard) still apply
+        return chunks, [{"type": "guard_error", "stage": "passage_check", "error": type(e).__name__}]
+    drop = {n for n in flagged if 1 <= n <= len(chunks)}
+    kept = [c for i, c in enumerate(chunks, 1) if i not in drop]
+    return kept, ([{"type": "retrieval_injection_dropped", "count": len(drop)}] if drop else [])

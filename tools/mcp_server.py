@@ -63,7 +63,7 @@ def compare_resources(ids: list[str], kind: str = "models", constraints: dict | 
 @mcp.tool()
 def benchmark_embedding_model(model_id: str, dataset_id: str, seed: int | None = None) -> dict:
     """Benchmark an allowlisted embedding model on an approved retrieval dataset in a sandboxed
-    subprocess. Returns measured Recall@k, MRR, nDCG, latency, hardware and versions.
+    worker process. Returns measured Recall@k, MRR, nDCG, latency, hardware and versions.
     Restricted: requires explicit human approval before it is called."""
     rec = benchmarks.benchmark_embedding_model(model_id, dataset_id, seed)
     return benchmarks.jsonable(rec)
