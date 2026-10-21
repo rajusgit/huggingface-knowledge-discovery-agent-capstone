@@ -124,6 +124,74 @@ export async function searchHub(kind: HubKind, f: SearchFilters, signal?: AbortS
   return (await res.json()) as HubResponse
 }
 
+export function parseIds(text: string): string[] {
+  return [...new Set(text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean))]
+}
+
+export interface ConstraintForm {
+  licenses: string
+  maxParamsM: string
+  language: string
+  task: string
+}
+export interface Constraints {
+  licenses?: string[]
+  max_parameters?: number
+  language?: string
+  task?: string
+}
+
+export function buildConstraints(f: ConstraintForm): Constraints | undefined {
+  const c: Constraints = {}
+  const licenses = f.licenses.split(',').map((s) => s.trim()).filter(Boolean)
+  if (licenses.length) c.licenses = licenses
+  const m = Number(f.maxParamsM)
+  if (f.maxParamsM.trim() !== '' && Number.isFinite(m) && m > 0) c.max_parameters = Math.round(m * 1_000_000)
+  if (f.language.trim()) c.language = f.language.trim()
+  if (f.task.trim()) c.task = f.task.trim()
+  return Object.keys(c).length ? c : undefined
+}
+
+export interface CompareRow {
+  id: string
+  pipeline_tag: string | null
+  library_name: string | null
+  license: string | null
+  parameters: number | null
+  languages: string[] | null
+  downloads: number | null
+  likes: number | null
+  revision: string | null
+  gated: boolean | null
+  source_url: string
+  fetched_at: string
+}
+export interface CompareResponse {
+  models: CompareRow[]
+  warnings: { id: string; field: string; message: string }[]
+  fetched_at: string
+  time_sensitive_fields: string[]
+  constraints_check?: Record<string, { ok: boolean; violations: string[]; unknown: string[] }>
+}
+
+export async function compareResources(
+  ids: string[],
+  kind: HubKind,
+  constraints?: Constraints,
+  signal?: AbortSignal,
+): Promise<CompareResponse> {
+  const res = await fetch(`${API_URL}/api/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, kind, constraints }),
+    signal,
+  })
+  if (!res.ok) {
+    throw new Error(res.status === 422 ? 'Enter 2-5 valid, distinct ids (owner/name) and valid constraints.' : res.status === 502 ? 'Hugging Face is unavailable.' : `Request failed (${res.status}).`)
+  }
+  return (await res.json()) as CompareResponse
+}
+
 export async function* streamChat(
   message: string,
   threadId: string,

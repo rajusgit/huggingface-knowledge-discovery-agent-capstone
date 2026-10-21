@@ -139,7 +139,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 
 ## Phase 3: Compare + Evaluate
 
-### - [ ] T13: Compare tools + endpoint + UI table
+### - [x] T13 (browser check manual): Compare tools + endpoint + UI table
 **Description:** `get_card_section` (README at pinned revision, live fetch, not persisted) and `compare_resources` (side-by-side facts: task, license, params/size, languages, revision, plus missing-field warnings) in the MCP server; `POST /api/compare`; UI compare table that labels every cell with its source and `fetched_at`.
 **Acceptance criteria:**
 - [ ] Missing card/metadata fields appear as explicit "not stated" warnings

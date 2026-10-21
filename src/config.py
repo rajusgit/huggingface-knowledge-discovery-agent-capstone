@@ -62,6 +62,7 @@ class HuggingFace(BaseModel):
     max_retries: int = 3
     cache_ttl_seconds: int = 900
     max_results: int = 50
+    max_card_chars: int = 6000
 
 
 class Benchmarks(BaseModel):

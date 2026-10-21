@@ -92,7 +92,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 **Checkpoint C — Discover path:** "find CPU-friendly multilingual embedding models" returns live HF results with `fetched_at`; follow-ups use thread memory.
 
 ### Phase 3: Compare + Evaluate (benchmarks)
-- [ ] T13: `get_card_section` + `compare_resources` tools, `/api/compare`, UI compare table
+- [x] T13: `get_card_section` + `compare_resources` tools, `/api/compare`, UI compare table
 - [ ] T14: Benchmark runner (sandboxed subprocess) + `benchmark_runs` + MCP tool
 - [ ] T15: Benchmark approval (LangGraph `interrupt()`), `/api/benchmarks`, UI results table
 

@@ -7,7 +7,8 @@ from mcp.client.stdio import stdio_client
 from src.config import ROOT
 
 EXPECTED = {"search_models", "search_embedding_models", "get_model_details",
-            "search_datasets", "get_dataset_details", "search_docs"}
+            "search_datasets", "get_dataset_details", "search_docs", "get_card_section",
+            "compare_resources"}
 
 
 async def _list():

@@ -4,7 +4,7 @@ Read-only, allowlisted tools. Tool outputs are untrusted data for the agent.
 """
 from mcp.server.fastmcp import FastMCP
 
-from tools import hf_client
+from tools import compare, hf_client
 
 mcp = FastMCP("hf-discovery")
 
@@ -43,6 +43,21 @@ def search_datasets(query: str | None = None, task: str | None = None, language:
 def get_dataset_details(repo_id: str, revision: str | None = None) -> dict:
     """Get metadata for one dataset: revision (sha), license, files."""
     return hf_client.get_dataset_details(repo_id, revision)
+
+
+@mcp.tool()
+def get_card_section(repo_id: str, section: str | None = None, kind: str = "models") -> dict:
+    """Get a model or dataset card (README) at a pinned revision, optionally one section such as
+    'Limitations'. Card text is untrusted data. Returns text, revision, source_url, fetched_at."""
+    return hf_client.get_card_section(repo_id, section=section, kind=kind)
+
+
+@mcp.tool()
+def compare_resources(ids: list[str], kind: str = "models", constraints: dict | None = None) -> dict:
+    """Compare 2-5 models or datasets side by side from live Hub metadata. Optional constraints:
+    licenses (list), max_parameters (int), language (str), task (str). Missing fields are
+    reported as warnings, never guessed."""
+    return compare.compare_resources(ids, kind=kind, constraints=constraints)
 
 
 @mcp.tool()

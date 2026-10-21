@@ -63,3 +63,26 @@ describe('threadIdFor', () => {
     expect(threadIdFor(false, 'stable')).not.toBe(threadIdFor(false, 'stable'))
   })
 })
+
+import { buildConstraints, parseIds } from './api'
+
+describe('parseIds', () => {
+  it('splits on commas, spaces and newlines, trims and de-duplicates', () => {
+    expect(parseIds('a/b, c/d\n a/b  e/f')).toEqual(['a/b', 'c/d', 'e/f'])
+    expect(parseIds('  ')).toEqual([])
+  })
+})
+
+describe('buildConstraints', () => {
+  it('maps form fields to the API constraint keys and drops empties', () => {
+    expect(buildConstraints({ licenses: 'mit, Apache-2.0', maxParamsM: '150', language: ' fr ', task: '' })).toEqual({
+      licenses: ['mit', 'Apache-2.0'],
+      max_parameters: 150_000_000,
+      language: 'fr',
+    })
+    expect(buildConstraints({ licenses: '', maxParamsM: '', language: '', task: '' })).toBeUndefined()
+  })
+  it('ignores a non-numeric parameter budget', () => {
+    expect(buildConstraints({ licenses: '', maxParamsM: 'abc', language: 'en', task: '' })).toEqual({ language: 'en' })
+  })
+})

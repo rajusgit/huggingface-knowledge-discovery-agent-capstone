@@ -43,14 +43,20 @@ def _now() -> str:
 
 
 def _get_json(path: str, params: dict | None = None):
-    """-> (parsed json, fetched_at). TTL-cached; 3 retries (config) on 429/5xx/network."""
+    """-> (parsed json, fetched_at)."""
+    body, fetched = _get_bytes(path, params)
+    return json.loads(body), fetched
+
+
+def _get_bytes(path: str, params: dict | None = None):
+    """-> (raw body, fetched_at). TTL-cached; retries (config) on 429/5xx/network."""
     cfg = config.settings.huggingface
     url = cfg.base_url + path
     if params:
         url += "?" + urllib.parse.urlencode(params, doseq=True)
     hit = _cache.get(url)
     if hit and hit[0] > _clock():
-        return json.loads(hit[1]), hit[2]
+        return hit[1], hit[2]
     for attempt in range(cfg.max_retries + 1):
         try:
             body = _fetch(url, cfg.api_timeout_seconds)
@@ -66,7 +72,7 @@ def _get_json(path: str, params: dict | None = None):
         _sleep(2**attempt)
     fetched = _now()
     _cache[url] = (_clock() + cfg.cache_ttl_seconds, body, fetched)
-    return json.loads(body), fetched
+    return body, fetched
 
 
 def _check_repo(repo_id: str) -> str:
@@ -173,3 +179,62 @@ def get_model_details(repo_id: str, revision: str | None = None) -> dict:
 
 def get_dataset_details(repo_id: str, revision: str | None = None) -> dict:
     return _detail("datasets", repo_id, revision)
+
+
+_HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
+
+
+def _strip_front_matter(text: str) -> str:
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            return text[end + 4:].lstrip("\n")
+    return text
+
+
+def get_card_section(repo_id: str, section: str | None = None, revision: str | None = None,
+                     kind: str = "models") -> dict:
+    """README (model/dataset card) text at a PINNED revision, optionally just one section.
+
+    Fetched live and returned, never persisted. Card text is untrusted data.
+    """
+    if kind not in ("models", "datasets"):
+        raise ValueError("kind must be 'models' or 'datasets'")
+    details = get_model_details if kind == "models" else get_dataset_details
+    rev = revision or details(repo_id)["revision"]  # resolve to a commit sha
+    if not rev or not _REV.match(rev):
+        raise HFError(f"could not determine a revision for {repo_id}")
+    prefix = "" if kind == "models" else "datasets/"
+    body, fetched = _get_bytes(f"/{prefix}{_check_repo(repo_id)}/raw/{urllib.parse.quote(rev, safe='')}/README.md")
+    text = _strip_front_matter(body.decode("utf-8", errors="replace"))
+    lines = text.splitlines()
+    heads, in_fence = [], False
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence  # '# comment' lines inside code blocks are not headings
+        elif not in_fence and (m := _HEADING.match(line)):
+            heads.append((len(m.group(1)), m.group(2), i))
+    out_text = text
+    if section:
+        want = section.strip().lstrip("#").strip().lower()
+        match = next(((lvl, i) for lvl, name, i in heads if name.lower() == want), None)
+        if match is None:
+            out_text = None
+        else:
+            lvl, i = match
+            end = next((j for l2, _, j in heads if j > i and l2 <= lvl), len(lines))
+            out_text = "\n".join(lines[i:end])
+    limit = config.settings.huggingface.max_card_chars
+    truncated = out_text is not None and len(out_text) > limit
+    if truncated:
+        out_text = out_text[:limit]
+    return {
+        "id": repo_id,
+        "revision": rev,
+        "section": section,
+        "sections": [name for _, name, _ in heads][:50],
+        "text": out_text,
+        "truncated": truncated,
+        "source_url": f"{config.settings.huggingface.base_url}/{prefix}{repo_id}/blob/{rev}/README.md",
+        "fetched_at": fetched,
+    }

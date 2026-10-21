@@ -21,7 +21,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from src import config
-from tools import hf_client
+from tools import compare, hf_client
 
 log = logging.getLogger("api")
 _cfg = config.settings
@@ -151,3 +151,14 @@ def search_datasets(q: str | None = None, language: str | None = None, license: 
                     sort: SortKey = "downloads",
                     limit: int = Query(10, ge=1, le=_cfg.huggingface.max_results)) -> dict:
     return _discover(hf_client.search_datasets, q, language=language, license=license, sort=sort, limit=limit)
+
+
+class CompareRequest(BaseModel):
+    ids: list[str] = Field(max_length=compare.MAX_IDS)
+    kind: Literal["models", "datasets"] = "models"
+    constraints: dict | None = None
+
+
+@app.post("/api/compare")
+def compare_resources(req: CompareRequest) -> dict:
+    return _discover(compare.compare_resources, req.ids, kind=req.kind, constraints=req.constraints)
