@@ -115,7 +115,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_agent_routing.py -q`; manual: `uv run python standalone-scripts/agent_cli.py`
 **Dependencies:** T4, T6, T9 · **Files:** `agents/__init__.py`, `agents/graph.py`, `agents/router.py`, `agents/state.py`, `tests/test_agent_routing.py` · **Scope:** M
 
-### - [ ] T11: Discovery endpoints + agent-backed chat
+### - [x] T11: Discovery endpoints + agent-backed chat
 **Description:** `/api/chat` now invokes the agent (streaming per node, course: react_langgraph `stream_mode`); add `GET /api/models/search` and `GET /api/datasets/search` (direct to `tools.hf_client` for UI filters). Persist messages to `hf_discovery.messages`.
 **Acceptance criteria:**
 - [ ] Chat SSE events include node progress, citations and tool results with `fetched_at`

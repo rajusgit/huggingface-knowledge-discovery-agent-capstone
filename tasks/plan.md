@@ -86,7 +86,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 ### Phase 2: Discover (MCP + agent)
 - [x] T9: HF client + FastMCP server (search/details tools)
 - [x] T10: LangGraph agent: intent routing (Semantic Router), RAG and MCP branches, Postgres checkpointer
-- [ ] T11: Discovery endpoints + agent-backed `/api/chat`
+- [x] T11: Discovery endpoints + agent-backed `/api/chat`
 - [ ] T12: UI discovery cards, filters, memory toggle
 
 **Checkpoint C — Discover path:** "find CPU-friendly multilingual embedding models" returns live HF results with `fetched_at`; follow-ups use thread memory.
