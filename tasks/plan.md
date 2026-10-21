@@ -70,7 +70,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 ### Phase 0: Foundation
 - [x] T1: Align architecture spec with decisions D1–D10
 - [x] T2: Project skeleton + config (pyproject/uv, config.yaml, src/config.py, .env.example)
-- [ ] T3: `hf_discovery` schema + db init on RDS
+- [x] T3: `hf_discovery` schema + db init on RDS
 - [ ] T4: `src/llm.py` OpenRouter client (complete/stream/cache) + isolation test
 
 **Checkpoint A — Foundation:** config loads, schema exists on RDS, one live OpenRouter call works, tests pass.

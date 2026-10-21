@@ -26,7 +26,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv sync && uv run python -c "from src.config import settings; print(settings.db.schema)"` prints `hf_discovery`; `uv run pytest tests/test_config.py tests/test_no_hardcoding.py -q`
 **Dependencies:** None · **Files:** `pyproject.toml`, `config/config.yaml`, `src/config.py`, `.env.example`, `tests/test_config.py`, `tests/test_no_hardcoding.py` · **Scope:** S
 
-### - [ ] T3 (code + offline tests done, **awaiting sign-off to run `--init` on RDS**): `hf_discovery` schema + db init
+### - [x] T3: `hf_discovery` schema + db init
 **Description:** Add `src/schema.sql` (spec §5.3; the LangGraph Postgres checkpointer tables via `PostgresSaver.setup()` are created in T10, when that dependency is added); point `src/db.py` at `hf_discovery`. High-risk first: proves RDS permissions and pgvector version.
 **Acceptance criteria:**
 - [ ] `python -m src.db --init` creates all 6 tables + indexes idempotently (second run is a no-op)
