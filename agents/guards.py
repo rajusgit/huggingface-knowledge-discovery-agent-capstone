@@ -7,19 +7,20 @@ Order, cheapest first, all before any retrieval or synthesis:
 A blocked message gets a refusal; nothing downstream sees its text.
 """
 import json
-import os
 import re
 from dataclasses import dataclass, field
 
 import yaml
+from langsmith import traceable
 
 from agents.router import SemanticRouter
 from src import config, llm, prompts
 from src.pii import SECRET as _SECRET
-from src.pii import mask_pii  # noqa: F401  (re-exported: the input guard's first step)
+from src.pii import load_secret_values, mask_pii  # noqa: F401  (re-exported for callers/tests)
 
 BLOCK_ROUTES = {"potentially_harmful", "off_topic"}
 
+@traceable(name="self_check_input", run_type="chain")
 def self_check_input(text: str) -> bool:
     """True if the LLM policy check says the message should be blocked."""
     out = llm.complete([{"role": "system", "content": prompts.SELF_CHECK_SYSTEM},
@@ -82,22 +83,6 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower())
 
 
-_SECRET_NAME = re.compile(r"KEY|TOKEN|PASSWORD|SECRET", re.I)
-
-
-def load_secret_values() -> list[str]:
-    """Actual secret values this deployment holds (env + .env, by variable name), so an answer that
-    echoes one can be stopped. Values shorter than 8 characters are ignored (too many false hits)."""
-    vals = {v for k, v in os.environ.items() if _SECRET_NAME.search(k)}
-    env_file = config.ROOT / ".env"
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            k, sep, v = line.partition("=")
-            if sep and not k.lstrip().startswith("#") and _SECRET_NAME.search(k):
-                vals.add(v.strip().strip("\"'"))
-    return sorted(v for v in vals if len(v) >= 8)
-
-
 def protected_prompts() -> list[str]:
     return [prompts.SYSTEM_RAG, prompts.SYSTEM_AGENT, prompts.SYSTEM_TOOLS, prompts.SYSTEM_PLAN_BENCH, prompts.SELF_CHECK_SYSTEM]
 
@@ -138,6 +123,7 @@ class OutputGuard:
         return out
 
 
+@traceable(name="passage_check", run_type="chain")
 def screen_passages(chunks: list[dict]) -> tuple[list[dict], list[dict]]:
     """One LLM call: drop retrieved passages that carry instructions aimed at the AI (indirect injection).
     -> (clean chunks, guard events). Fails open (recorded) if the check itself fails."""

@@ -18,6 +18,7 @@ import time
 from typing import Annotated, TypedDict
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
+from langsmith import traceable
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
@@ -25,10 +26,21 @@ from langgraph.types import Command, interrupt
 
 from agents import guards as guards_mod
 from agents import router as router_mod
+from observability import tracing
 from src import config, llm, prompts, retrieval
 from tools import benchmarks
 
 TERMINAL = {"succeeded", "failed", "timeout"}
+
+
+@traceable(name="generate", run_type="llm")
+def _complete(messages, **kw):
+    return llm.complete(messages, **kw)
+
+
+@traceable(name="generate", run_type="llm")
+def _stream(messages):
+    yield from llm.stream(messages, temperature=0)
 
 
 class State(TypedDict, total=False):
@@ -147,7 +159,7 @@ def build_graph(router, tools, checkpointer, guard):
                     {"role": "user", "content": state["question"]}]
         live: list[dict] = []
         for _ in range(cfg.max_tool_rounds):
-            out = await asyncio.to_thread(llm.complete, messages, tools=openai_tools)
+            out = await asyncio.to_thread(_complete, messages, tools=openai_tools)
             if not out["tool_calls"]:
                 break
             messages.append({"role": "assistant", "content": out["content"], "tool_calls": [
@@ -160,7 +172,7 @@ def build_graph(router, tools, checkpointer, guard):
                     if tool is None:
                         raise ValueError(f"tool {call['name']!r} is not allowed")
                     args = json.loads(call["arguments"] or "{}")
-                    text = _tool_text(await tool.ainvoke(args))
+                    text = _tool_text(await tool.ainvoke(args))   # LangChain traces the tool call itself
                     try:
                         result = json.loads(text)
                     except ValueError:
@@ -180,8 +192,8 @@ def build_graph(router, tools, checkpointer, guard):
             return _refuse("No benchmark datasets are available yet, so I can't run a benchmark.")
         system = prompts.SYSTEM_PLAN_BENCH.replace("{models}", ", ".join(bcfg.allowed_models)) \
                                           .replace("{datasets}", ", ".join(datasets))
-        out = llm.complete([{"role": "system", "content": system}, *hist(state),
-                            {"role": "user", "content": state["question"]}], temperature=0)
+        out = _complete([{"role": "system", "content": system}, *hist(state),
+                         {"role": "user", "content": state["question"]}], temperature=0)
         data = _json_object(out["content"])
         # LLM output is untrusted: only allowlisted models / existing datasets survive.
         models = [m for m in dict.fromkeys(data.get("models") or [])
@@ -257,7 +269,7 @@ def build_graph(router, tools, checkpointer, guard):
         og = guards_mod.OutputGuard(guards_mod.load_secret_values(), guards_mod.protected_prompts())
         text = ""
         try:
-            for tok in llm.stream(messages, temperature=0):
+            for tok in _stream(messages):
                 if safe := og.feed(tok):
                     text += safe
                     writer({"type": "token", "text": safe})
@@ -315,46 +327,49 @@ class Agent:
                   deleted once the turn finishes (a pending approval keeps it until resolved).
     """
 
-    def __init__(self, graph, saver):
+    def __init__(self, graph, saver, tracer=None):
         self._graph, self._saver = graph, saver
+        self._tracer = tracer or tracing.default_tracer()
 
     @staticmethod
     def _tid(thread_id: str, memory: bool) -> str:
         return thread_id if memory else f"{thread_id}~nomem"
 
-    def _cfg(self, thread_id: str, memory: bool) -> dict:
-        return {"configurable": {"thread_id": self._tid(thread_id, memory)}}
+    def _cfg(self, thread_id: str, memory: bool, variant: str = "default") -> dict:
+        return {"configurable": {"thread_id": self._tid(thread_id, memory)}, **self._tracer.config(thread_id, variant, memory)}
 
     async def _cleanup(self, thread_id: str, memory: bool, interrupted: bool) -> None:
         if not memory and not interrupted:
             await self._saver.adelete_thread(self._tid(thread_id, memory))
 
-    async def _invoke(self, inp, thread_id: str, memory: bool) -> dict:
-        state = await self._graph.ainvoke(inp, self._cfg(thread_id, memory))
+    async def _invoke(self, inp, thread_id: str, memory: bool, variant: str = "default") -> dict:
+        with self._tracer.context():
+            state = await self._graph.ainvoke(inp, self._cfg(thread_id, memory, variant))
         pending = state.get("__interrupt__")
         await self._cleanup(thread_id, memory, bool(pending))
         out = {k: state.get(k) for k in RESULT_KEYS}
         out["interrupt"] = pending[0].value if pending else None
         return out
 
-    async def _stream(self, inp, thread_id: str, memory: bool):
+    async def _stream(self, inp, thread_id: str, memory: bool, variant: str = "default"):
         interrupted = False
-        async for mode, payload in self._graph.astream(inp, self._cfg(thread_id, memory),
-                                                       stream_mode=["updates", "custom"]):
-            if mode == "updates" and "__interrupt__" in payload:
-                interrupted = True
-                yield "interrupt", payload["__interrupt__"][0].value
-            else:
-                yield mode, payload
+        with self._tracer.context():
+            async for mode, payload in self._graph.astream(inp, self._cfg(thread_id, memory, variant),
+                                                           stream_mode=["updates", "custom"]):
+                if mode == "updates" and "__interrupt__" in payload:
+                    interrupted = True
+                    yield "interrupt", payload["__interrupt__"][0].value
+                else:
+                    yield mode, payload
         await self._cleanup(thread_id, memory, interrupted)
 
-    async def ainvoke(self, question: str, thread_id: str, memory: bool = True) -> dict:
-        return await self._invoke({"question": question, "use_history": memory}, thread_id, memory)
+    async def ainvoke(self, question: str, thread_id: str, memory: bool = True, variant: str = "default") -> dict:
+        return await self._invoke({"question": question, "use_history": memory}, thread_id, memory, variant)
 
-    def astream(self, question: str, thread_id: str, memory: bool = True):
+    def astream(self, question: str, thread_id: str, memory: bool = True, variant: str = "default"):
         """Yields (mode, payload): 'updates' per-node state updates, 'custom' token/status events,
         'interrupt' when human approval is required."""
-        return self._stream({"question": question, "use_history": memory}, thread_id, memory)
+        return self._stream({"question": question, "use_history": memory}, thread_id, memory, variant)
 
     async def aresume(self, thread_id: str, approved: bool, memory: bool = True) -> dict:
         return await self._invoke(Command(resume={"approved": approved}), thread_id, memory)
@@ -363,6 +378,6 @@ class Agent:
         return self._stream(Command(resume={"approved": approved}), thread_id, memory)
 
 
-def build_agent(router=None, tools=None, checkpointer=None, guard=None) -> Agent:
+def build_agent(router=None, tools=None, checkpointer=None, guard=None, tracer=None) -> Agent:
     saver = checkpointer if checkpointer is not None else InMemorySaver()
-    return Agent(build_graph(router or router_mod.load_router(), tools, saver, guard or guards_mod.load_guard()), saver)
+    return Agent(build_graph(router or router_mod.load_router(), tools, saver, guard or guards_mod.load_guard()), saver, tracer)

@@ -17,6 +17,8 @@ from docling.chunking import HierarchicalChunker
 from docling.datamodel.base_models import DocumentStream
 from docling.document_converter import DocumentConverter
 
+from langsmith import traceable
+
 from src import config
 
 _NOISE = re.compile(r"^\[\[[\w-]+\]\]$")  # e.g. HF doc directive [[open-in-colab]]
@@ -133,6 +135,7 @@ def _hybrid(text: str) -> list[Chunk]:
 CHUNKERS = {"hierarchical": _hierarchical, "fixed50": _fixed, "recursive200": _recursive, "hybrid128": _hybrid}
 
 
+@traceable(name="parse_chunk", run_type="chain")
 def chunk_markdown(text: str, strategy: str) -> list[Chunk]:
     if strategy not in CHUNKERS:
         raise ValueError(f"unknown chunk strategy {strategy!r}; have {sorted(CHUNKERS)}")

@@ -14,6 +14,7 @@ def _fresh_settings():
     # Reranking needs a downloaded cross-encoder; tests opt in explicitly (rerank=True + scorer).
     config.settings.retrieval.rerank = False
     # Guards load an encoder and call an LLM; tests opt in with an explicit Guard instance.
+    config.settings.langsmith_api_key = None   # tests never post to the real LangSmith
     config.settings.guard.enabled = False
     config.settings.guard.self_check = False
     config.settings.guard.passage_check = False

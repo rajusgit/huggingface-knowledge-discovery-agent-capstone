@@ -6,6 +6,7 @@ retrieve()          the pipeline: search_knowledge -> optional cross-encoder rer
 
 Scope = the active ingest run unless run_id is given (experiments query a specific run).
 """
+from langsmith import traceable
 from pgvector import Vector
 from pgvector.psycopg import register_vector
 
@@ -111,6 +112,7 @@ def search_knowledge(
     return [h for h in hits if h["score"] >= threshold or h.get("lexical")]
 
 
+@traceable(name="retrieve", run_type="retriever")
 def retrieve(query: str, *, mode: str | None = None, rerank: bool | None = None, top_n: int | None = None,
              scorer=None, **kw) -> list[dict]:
     """The retrieval pipeline: candidates (k) -> optional cross-encoder rerank -> top_n.

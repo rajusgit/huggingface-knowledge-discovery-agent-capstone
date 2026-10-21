@@ -206,14 +206,16 @@ def test_each_strategy_gets_its_own_run_over_the_same_corpus(conn):
     assert conn.execute("SELECT count(DISTINCT chunk_strategy) FROM doc_chunks WHERE run_id = ANY(%s)", (list(runs.values()),)).fetchone()[0] == 4
 
 
-@pytest.mark.parametrize("strategy,flag,expected", [
-    ("hierarchical", None, True),      # the configured default chunker is published
-    ("fixed50", None, False),          # experiment variants are validated but never become active
-    ("fixed50", True, True),           # unless explicitly asked
-    ("hierarchical", False, False),
+@pytest.mark.parametrize("flag,is_default,expected", [
+    (None, True, True),       # the configured default chunker is published
+    (None, False, False),     # experiment variants are validated but never become active
+    (True, False, True),      # unless explicitly asked
+    (False, True, False),
 ])
-def test_publish_policy(strategy, flag, expected):
-    assert ingest.should_publish(strategy, flag) is expected
+def test_publish_policy(flag, is_default, expected):
+    default = config.settings.retrieval.chunker             # chosen by the variant experiment, so read it
+    other = next(c for c in ("hierarchical", "fixed50", "recursive200", "hybrid128") if c != default)
+    assert ingest.should_publish(default if is_default else other, flag) is expected
 
 
 def test_two_runs_over_the_same_revision_each_hold_the_full_corpus(conn):

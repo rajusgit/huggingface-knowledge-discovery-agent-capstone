@@ -141,7 +141,7 @@ async def _events(stream, *, memory: bool, thread_id: str, question: str | None,
 async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     # Mask PII *before* the graph runs: LangGraph checkpoints its input, so a later node would be too late.
     masked, pre_events = guards.mask_pii(req.message)
-    stream = request.app.state.agent.astream(masked, req.thread_id, memory=req.memory)
+    stream = request.app.state.agent.astream(masked, req.thread_id, memory=req.memory, variant=req.pipeline_variant)
     return StreamingResponse(
         _events(stream, memory=req.memory, thread_id=req.thread_id, question=masked, pre_events=pre_events),
         media_type="text/event-stream")

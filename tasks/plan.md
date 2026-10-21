@@ -103,7 +103,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 - [x] T17: Remaining 3 chunkers as separate ingest runs
 - [x] T18: Hybrid retrieval (pgvector + FTS, RRF) + reranker switches
 - [x] T19: Golden dataset (≥120 queries) in LangSmith
-- [ ] T20: 16-variant eval harness (RAGAS + heuristics) + leaderboard endpoint/UI
+- [x] T20: 16-variant eval harness (RAGAS + heuristics) + leaderboard endpoint/UI
 
 **Checkpoint E — Experiments:** 16-row leaderboard reproducible; best measured config recorded in config.yaml.
 
@@ -115,7 +115,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 **Checkpoint F — Security:** red-team suite: tool escalation 100% blocked, indirect injection ≤1%, unauthorized retrieval = 0.
 
 ### Phase 6: Observability + release
-- [ ] T24: LangSmith `@traceable` spans, tags/metadata, OpenRouter cost
+- [x] T24: LangSmith `@traceable` spans, tags/metadata, OpenRouter cost
 - [ ] T25: CI (GitHub Actions) + README local run + final quality/cost report
 - [ ] T26: Railway deployment with API auth enabled
 

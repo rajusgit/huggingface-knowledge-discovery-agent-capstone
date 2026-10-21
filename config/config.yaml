@@ -28,13 +28,14 @@ database:
   pool_size: 5
 
 retrieval:
+  # eval-winner: exp-dc89090e60 (hybrid128|dense|rerank)
   mode: "dense"                    # dense | hybrid
   k: 10
   top_n: 3
   score_threshold: 0.30
   rerank: true                     # switch: cross-encoder rerank of the candidates
   reranker: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-  chunker: "hierarchical"          # hierarchical | fixed50 | recursive200 | hybrid128
+  chunker: "hybrid128"          # hierarchical | fixed50 | recursive200 | hybrid128
   fixed_chunk_words: 50
   recursive_chunk_size: 200
   recursive_chunk_overlap: 20
@@ -46,6 +47,12 @@ router:
   routes_file: "config/routes.yaml"
   threshold: 0.35                  # min cosine similarity to accept a route (else out_of_scope)
   combined_margin: 0.05            # a 2nd route within this margin makes the intent combined
+
+observability:
+  tracing_enabled: true            # traces are sent only when LANGSMITH_API_KEY is also set
+  project: "hf-knowledge-agent"
+  prompt_version: "v2"             # bump when a system prompt changes; it tags every trace
+  max_chars: 2000                  # longest string kept in a trace field
 
 guard:
   enabled: true                   # semantic input guard (PII masking is always on)

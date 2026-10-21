@@ -2,6 +2,8 @@
 lock (see src/embed.py for why)."""
 import threading
 
+from langsmith import traceable
+
 from src import config
 
 _model = None
@@ -24,6 +26,7 @@ def _predict(pairs):
         return _model.predict(pairs)
 
 
+@traceable(name="rerank", run_type="chain")
 def score(query: str, passages: list[str], scorer=None) -> list[float]:
     """Relevance score per passage (higher = more relevant)."""
     scores = [float(x) for x in (scorer or _predict)([(query, p) for p in passages])]

@@ -52,6 +52,13 @@ class Router(BaseModel):
     combined_margin: float = 0.05
 
 
+class Observability(BaseModel):
+    tracing_enabled: bool = True
+    project: str = "hf-knowledge-agent"
+    prompt_version: str = "v1"
+    max_chars: int = 2000
+
+
 class Guard(BaseModel):
     enabled: bool = True
     routes_file: str = "config/guard_routes.yaml"
@@ -137,6 +144,7 @@ class Settings(BaseSettings):
     # secrets (.env)
     tickerpulse_db_password: str
     hf_token: str | None = None
+    langsmith_api_key: str | None = None
     api_key: str | None = None
 
     # config.yaml sections (llm is read by src/llm.py itself)
@@ -145,6 +153,7 @@ class Settings(BaseSettings):
     database: Database
     retrieval: Retrieval
     router: Router
+    observability: Observability
     guard: Guard
     agent: Agent
     huggingface: HuggingFace

@@ -27,7 +27,7 @@ class FakeAgent:
     def __init__(self, events=EVENTS):
         self.events, self.calls = events, []
 
-    def astream(self, question, thread_id, memory=True):
+    def astream(self, question, thread_id, memory=True, variant="default"):
         self.calls.append((question, thread_id, memory))
 
         async def gen():

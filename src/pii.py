@@ -1,4 +1,5 @@
 """PII / secret masking (regex + Luhn). Used by the input guard, retrieval-time redaction and the API."""
+import os
 import re
 
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -35,3 +36,21 @@ def mask_pii(text: str) -> tuple[str, list[dict]]:
     text = sub("card", _CARD, "[CARD]", text, ok=lambda m: _luhn(re.sub(r"\D", "", m.group(0))))
     text = sub("phone", _PHONE, "[PHONE]", text)
     return text, [{"type": "pii_masked", "kind": k, "count": n} for k, n in counts.items()]
+
+
+_SECRET_NAME = re.compile(r"KEY|TOKEN|PASSWORD|SECRET", re.I)
+
+
+def load_secret_values() -> list[str]:
+    """Actual secret values this deployment holds (env + .env, by variable name), so a trace or an answer
+    that echoes one can be scrubbed. Values shorter than 8 characters are ignored (too many false hits)."""
+    from src import config
+
+    vals = {v for k, v in os.environ.items() if _SECRET_NAME.search(k)}
+    env_file = config.ROOT / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            k, sep, v = line.partition("=")
+            if sep and not k.lstrip().startswith("#") and _SECRET_NAME.search(k):
+                vals.add(v.strip().strip("\"'"))
+    return sorted(v for v in vals if len(v) >= 8)

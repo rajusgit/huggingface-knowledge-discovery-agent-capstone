@@ -161,7 +161,7 @@ class FakeAgent:
                 yield e
         return gen()
 
-    def astream(self, q, t, memory=True):
+    def astream(self, q, t, memory=True, variant="default"):
         self.calls.append(("stream", q, t, memory))
         return self._gen()
 
@@ -237,7 +237,7 @@ def test_api_drains_stream_after_interrupt_so_checkpoint_is_saved(client):
     done = []
 
     class Agent2(FakeAgent):
-        def astream(self, q, t, memory=True):
+        def astream(self, q, t, memory=True, variant="default"):
             async def gen():
                 yield ("interrupt", APPROVAL)
                 yield ("updates", {"__metadata__": {"cached": True}})
