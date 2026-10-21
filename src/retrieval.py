@@ -9,15 +9,16 @@ Scope = the active ingest run unless run_id is given (experiments query a specif
 from pgvector import Vector
 from pgvector.psycopg import register_vector
 
-from src import config
+from src import config, pii
 
 MODES = ("dense", "hybrid")
 _COLS = "c.chunk_id, c.source_id, c.source_url, c.heading_path, c.revision, c.content"
 _KEYS = ("chunk_id", "source_id", "source_url", "heading_path", "revision", "content", "score")
 
 
-def _scope(run_id, category, params):
-    where = ["c.deleted_at IS NULL"]
+def _scope(run_id, category, allowed_access, params):
+    where = ["c.deleted_at IS NULL", "c.access = ANY(%(access)s)"]
+    params["access"] = list(allowed_access)
     if run_id is None:
         where.append("r.status = 'active'")
     else:
@@ -37,6 +38,7 @@ def search_knowledge(
     run_id: int | None = None,
     threshold: float | None = None,
     mode: str | None = None,
+    allowed_access: tuple[str, ...] = ("public",),
     embed_fn=None,
     conn=None,
 ) -> list[dict]:
@@ -55,7 +57,7 @@ def search_knowledge(
     if embed_fn is None:
         from src.embed import embed as embed_fn
     params: dict = {"q": Vector(embed_fn([query])[0]), "k": k}
-    where = _scope(run_id, category, params)
+    where = _scope(run_id, category, allowed_access, params)
 
     if mode == "dense":
         sql = f"""
@@ -126,4 +128,8 @@ def retrieve(query: str, *, mode: str | None = None, rerank: bool | None = None,
         for h, s in zip(hits, reranker.score(query, [h["content"] for h in hits], scorer=scorer)):
             h["rerank_score"] = float(s)
         hits = sorted(hits, key=lambda h: -h["rerank_score"])
-    return hits[:top_n]
+    hits = hits[:top_n]
+    for h in hits:  # retrieval-time redaction: the model never sees emails/cards/phones/keys found in docs
+        h["content"], events = pii.mask_pii(h["content"])
+        h["redacted"] = bool(events)
+    return hits

@@ -132,8 +132,10 @@ def build_graph(router, tools, checkpointer, guard):
         return lambda state: "validate_evidence" if state.get("refused") else nxt
 
     def retrieve_docs(state: State):
-        hits = retrieval.retrieve(state["question"])
-        return {"chunks": [c for c in hits if c.get("content")]}
+        hits = [c for c in retrieval.retrieve(state["question"]) if c.get("content")]
+        redacted = sum(bool(c.get("redacted")) for c in hits)
+        events = state.get("guard_events", []) + ([{"type": "retrieval_redacted", "count": redacted}] if redacted else [])
+        return {"chunks": hits, "guard_events": events}
 
     async def call_mcp_tools(state: State):
         if not by_name:
@@ -237,7 +239,7 @@ def build_graph(router, tools, checkpointer, guard):
             return {}
         parts = []
         if state["chunks"]:
-            parts.append("Documentation passages:\n" + prompts.build_context(state["chunks"]))
+            parts.append("Documentation passages:\n" + prompts.context_block(state["chunks"]))
         if state["live"]:
             data = json.dumps([{"tool": l["tool"], "args": l["args"], "result": l["result"]} for l in state["live"]],
                               default=str)[:cfg.max_tool_result_chars * 2]
@@ -249,10 +251,19 @@ def build_graph(router, tools, checkpointer, guard):
         messages = [{"role": "system", "content": prompts.SYSTEM_AGENT}, *hist(state),
                     {"role": "user", "content": "\n\n".join(parts) + f"\n\nQuestion: {state['question']}"}]
         writer = get_stream_writer()
+        og = guards_mod.OutputGuard(guards_mod.load_secret_values(), guards_mod.protected_prompts())
         text = ""
-        for tok in llm.stream(messages, temperature=0):
-            text += tok
-            writer({"type": "token", "text": tok})
+        try:
+            for tok in llm.stream(messages, temperature=0):
+                if safe := og.feed(tok):
+                    text += safe
+                    writer({"type": "token", "text": safe})
+            if tail := og.flush():
+                text += tail
+                writer({"type": "token", "text": tail})
+        except guards_mod.OutputLeak as leak:  # never release text that leaks a secret or the system prompt
+            events = state.get("guard_events", []) + [{"type": "output_blocked", "reason": leak.kind}]
+            return {"answer": prompts.BLOCKED_ANSWER, "refused": True, "guard_events": events}
         return {"answer": text.strip()}
 
     def verify_citations(state: State):

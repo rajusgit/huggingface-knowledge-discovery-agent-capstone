@@ -230,7 +230,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_guards.py -q`
 **Dependencies:** T10 · **Files:** `agents/guards.py`, `agents/nemo_llm.py`, `agents/graph.py`, `config/nemo/config.yml`, `tests/test_guards.py` · **Scope:** M
 
-### - [ ] T22: Injection defence + redaction + output checks
+### - [x] T22 (also fixed: cross-encoder returned NaN on CPU, silently disabling reranking; weights are now cloned and NaN scores raise): Injection defence + redaction + output checks
 **Description:** Hardened system prompt with `### RETRIEVED (untrusted) ###` delimiters; retrieval-time redaction of sensitive chunks (16_ai_security `ask_hr_bot_redacted`); output regex check for system-prompt/secret leakage; `html.escape` wherever text could be rendered as HTML.
 **Acceptance criteria:**
 - [ ] Planted malicious instruction in an indexed test card does not change agent behaviour

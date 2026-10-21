@@ -42,7 +42,7 @@ export default function Chat() {
         if (e.type === 'token') patchLast((t) => ({ ...t, answer: t.answer + e.text }))
         else if (e.type === 'benchmark_status') patchLast((t) => ({ ...t, status: e.jobs.map((j) => `${j.model_id}: ${j.status}`).join(' · ') }))
         else if (e.type === 'approval_required') patchLast((t) => ({ ...t, approval: { ...e, threadId: thread } }))
-        else if (e.type === 'final') patchLast((t) => ({ ...t, citations: e.citations, live: e.live_sources, bench: e.benchmarks, status: undefined, done: true }))
+        else if (e.type === 'final') patchLast((t) => ({ ...t, answer: e.answer || t.answer, citations: e.citations, live: e.live_sources, bench: e.benchmarks, status: undefined, done: true }))
         else if (e.type === 'error') patchLast((t) => ({ ...t, error: e.message, done: true }))
       }
     } catch (err) {

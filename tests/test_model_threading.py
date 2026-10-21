@@ -5,6 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from types import SimpleNamespace
 
 from src import embed, rerank
 
@@ -15,6 +16,7 @@ class Probe:
     def __init__(self):
         self.active = self.peak = 0
         self.lock = threading.Lock()
+        self.model = SimpleNamespace(parameters=lambda: [], buffers=lambda: [])   # like CrossEncoder.model
 
     def _run(self):
         with self.lock:

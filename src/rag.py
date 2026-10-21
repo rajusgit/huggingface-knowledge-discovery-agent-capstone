@@ -7,7 +7,7 @@ def prepare(question: str, **search_kw) -> tuple[list[dict], list[dict]]:
     chunks = [c for c in retrieval.retrieve(question, **search_kw) if c.get("content")]
     messages = [
         {"role": "system", "content": prompts.SYSTEM_RAG},
-        {"role": "user", "content": f"Context:\n{prompts.build_context(chunks)}\n\nQuestion: {question}"},
+        {"role": "user", "content": f"Context:\n{prompts.context_block(chunks)}\n\nQuestion: {question}"},
     ]
     return messages, chunks
 

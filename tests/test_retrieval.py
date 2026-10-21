@@ -185,3 +185,11 @@ def test_rerank_module_real_model_orders_relevant_first(monkeypatch):
     except Exception as e:
         pytest.skip(f"cross-encoder unavailable: {e}")
     assert scores[0] > scores[1]
+
+
+def test_reranker_refuses_nan_scores_instead_of_silently_keeping_the_order():
+    """Regression: CPU BLAS returned NaN for mmap'd weights; sorting by NaN left the order unchanged and
+    every 'rerank' variant silently behaved like 'no rerank'."""
+    from src import rerank
+    with pytest.raises(RuntimeError, match="NaN"):
+        rerank.score("q", ["a", "b"], scorer=lambda pairs: [float("nan")] * len(pairs))

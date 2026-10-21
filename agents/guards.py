@@ -6,6 +6,7 @@ Order, cheapest first, all before any retrieval or synthesis:
   3. self-check input              (one LLM policy call via src.llm, NeMo "self check input" style)
 A blocked message gets a refusal; nothing downstream sees its text.
 """
+import os
 import re
 from dataclasses import dataclass, field
 
@@ -13,44 +14,10 @@ import yaml
 
 from agents.router import SemanticRouter
 from src import config, llm, prompts
+from src.pii import SECRET as _SECRET
+from src.pii import mask_pii  # noqa: F401  (re-exported: the input guard's first step)
 
 BLOCK_ROUTES = {"potentially_harmful", "off_topic"}
-
-_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_CARD = re.compile(r"(?<![\w-])\d(?:[ -]?\d){12,18}(?![\w-])")
-_PHONE = re.compile(r"(?<![\w.])(?:\+\d{1,3}[ .-]?)?(?:\(\d{3}\)|\d{3})[ .-]\d{3}[ .-]\d{4}(?![\w])")
-_SECRET = re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|hf_[A-Za-z0-9]{30,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16})\b")
-
-
-def _luhn(digits: str) -> bool:
-    total = 0
-    for i, ch in enumerate(reversed(digits)):
-        d = int(ch)
-        if i % 2:
-            d = d * 2 - 9 if d * 2 > 9 else d * 2
-        total += d
-    return total % 10 == 0
-
-
-def mask_pii(text: str) -> tuple[str, list[dict]]:
-    """Replace emails, card numbers (Luhn-valid), phone numbers and API-key-like secrets with
-    placeholders. -> (masked text, one pii_masked event per kind found). Idempotent."""
-    counts: dict[str, int] = {}
-
-    def sub(kind, pattern, token, text, ok=lambda m: True):
-        def repl(m):
-            if not ok(m):
-                return m.group(0)
-            counts[kind] = counts.get(kind, 0) + 1
-            return token
-        return pattern.sub(repl, text)
-
-    text = sub("secret", _SECRET, "[SECRET]", text)
-    text = sub("email", _EMAIL, "[EMAIL]", text)
-    text = sub("card", _CARD, "[CARD]", text, ok=lambda m: _luhn(re.sub(r"\D", "", m.group(0))))
-    text = sub("phone", _PHONE, "[PHONE]", text)
-    return text, [{"type": "pii_masked", "kind": k, "count": n} for k, n in counts.items()]
-
 
 def self_check_input(text: str) -> bool:
     """True if the LLM policy check says the message should be blocked."""
@@ -98,3 +65,73 @@ def load_guard(enabled: bool | None = None, self_check: bool | None = None) -> G
         enc = config.settings.router.encoder
         router = SemanticRouter(routes, lambda texts: embed(texts, model=enc), cfg.threshold, margin=0.0)
     return Guard(router, cfg.self_check if self_check is None else self_check)
+
+
+# ---- output guard -------------------------------------------------------------------------------------
+
+class OutputLeak(Exception):
+    """The model output contains a secret or protected prompt text. kind: secret | secret_value | system_prompt."""
+
+    def __init__(self, kind: str):
+        super().__init__(kind)
+        self.kind = kind
+
+
+def _norm(text: str) -> str:
+    return re.sub(r"\s+", " ", text.lower())
+
+
+_SECRET_NAME = re.compile(r"KEY|TOKEN|PASSWORD|SECRET", re.I)
+
+
+def load_secret_values() -> list[str]:
+    """Actual secret values this deployment holds (env + .env, by variable name), so an answer that
+    echoes one can be stopped. Values shorter than 8 characters are ignored (too many false hits)."""
+    vals = {v for k, v in os.environ.items() if _SECRET_NAME.search(k)}
+    env_file = config.ROOT / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            k, sep, v = line.partition("=")
+            if sep and not k.lstrip().startswith("#") and _SECRET_NAME.search(k):
+                vals.add(v.strip().strip("\"'"))
+    return sorted(v for v in vals if len(v) >= 8)
+
+
+def protected_prompts() -> list[str]:
+    return [prompts.SYSTEM_RAG, prompts.SYSTEM_AGENT, prompts.SYSTEM_TOOLS, prompts.SYSTEM_PLAN_BENCH, prompts.SELF_CHECK_SYSTEM]
+
+
+class OutputGuard:
+    """Streaming filter. feed() returns the text that is safe to release; the last `holdback` characters
+    are held back so a secret or protected-prompt fragment is detected before any of it leaves the server
+    (detection needs at most `window` characters, which is less than the holdback)."""
+
+    def __init__(self, secrets: list[str], protected: list[str], holdback: int = 64, window: int = 40):
+        self.secrets = [s for s in secrets if len(s) >= 8]
+        self.window, self.holdback = window, max(holdback, window + 1)
+        self.windows = set()
+        for t in protected:
+            n = _norm(t)
+            self.windows |= {n[i:i + window] for i in range(len(n) - window + 1)}
+        self.buf, self.released = "", 0
+
+    def _check(self, text: str) -> None:
+        if _SECRET.search(text):
+            raise OutputLeak("secret")
+        if any(s in text for s in self.secrets):
+            raise OutputLeak("secret_value")
+        n = _norm(text)
+        if any(n[i:i + self.window] in self.windows for i in range(len(n) - self.window + 1)):
+            raise OutputLeak("system_prompt")
+
+    def feed(self, tok: str) -> str:
+        self.buf += tok
+        self._check(self.buf)
+        upto = max(self.released, len(self.buf) - self.holdback)
+        out, self.released = self.buf[self.released:upto], upto
+        return out
+
+    def flush(self) -> str:
+        self._check(self.buf)
+        out, self.released = self.buf[self.released:], len(self.buf)
+        return out

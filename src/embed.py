@@ -16,6 +16,15 @@ _models: dict[str, SentenceTransformer] = {}
 _lock = threading.Lock()
 
 
+def own_weights(model):
+    """Give the model its own copy of every weight. Weights fresh from a safetensors file are memory-mapped,
+    and CPU BLAS on some machines returns NaN for them (seen with the cross-encoder on Apple silicon:
+    q(h) was NaN but F.linear on a cloned weight was fine). Cloning costs ~90 MB once."""
+    for t in list(model.parameters()) + list(model.buffers()):
+        t.data = t.data.clone()
+    return model
+
+
 def get_model(name: str | None = None) -> SentenceTransformer:
     name = name or config.settings.embedding.model
     with _lock:
