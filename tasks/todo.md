@@ -80,7 +80,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run python -m src.main` + `curl -N -X POST localhost:8000/api/chat -d '{...}'`; `uv run pytest tests/test_api.py -q` (TestClient)
 **Dependencies:** T6 · **Files:** `src/api.py`, `src/main.py`, `tests/test_api.py` · **Scope:** S
 
-### - [ ] T8: React chat shell + citation drawer
+### - [x] T8 (build + unit tests verified; browser click-through still manual): React chat shell + citation drawer
 **Description:** Vite + React + TS + Tailwind in `ui/`: chat panel consuming the SSE stream, citation drawer with clickable URL + heading breadcrumb + score. Untrusted text rendered as text (no `dangerouslySetInnerHTML`).
 **Acceptance criteria:**
 - [ ] Streamed answer renders incrementally; citations open the source URL in a new tab

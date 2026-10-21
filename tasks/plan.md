@@ -79,7 +79,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 - [x] T5: Ingest one approved doc page → hierarchical chunks → active run
 - [x] T6: Dense retrieval + cited answer CLI
 - [x] T7: FastAPI `/api/chat` (RAG-only, SSE streaming)
-- [ ] T8: React chat shell with citation drawer
+- [x] T8: React chat shell with citation drawer
 
 **Checkpoint B — Learn path:** question in browser → streamed answer with clickable source URL + breadcrumb.
 
