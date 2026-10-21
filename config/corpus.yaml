@@ -1,0 +1,45 @@
+# Rules for generating config/sources.yaml (standalone-scripts/build_registry.py).
+# Pages come from each repo's docs tree at its latest release tag (default-branch commit when a repo
+# has no releases), pinned by commit SHA. Autodoc-style reference pages are excluded.
+repos:
+  - name: transformers
+    repo: huggingface/transformers
+    root: docs/source/en/
+    url_base: https://huggingface.co/docs/transformers/en/
+    exclude: [model_doc/, internal/, main_classes/, _toctree, community_integrations/]
+    priority: [quicktour, installation, pipeline_tutorial, llm_tutorial, chat_templating, generation_strategies, training, trainer, peft, model_sharing, tokenizers, fast_tokenizers, tasks/sequence_classification, tasks/question_answering, tasks/language_modeling, quantization/overview, serving, conversations]
+    max_pages: 40
+    category: transformers
+  - name: datasets
+    repo: huggingface/datasets
+    root: docs/source/
+    url_base: https://huggingface.co/docs/datasets/
+    exclude: [package_reference/, _toctree]
+    priority: [quickstart, load_hub, loading, create_dataset, process, stream, use_with_pytorch, upload_dataset, about_dataset_features]
+    max_pages: 25
+    category: datasets
+  - name: huggingface-hub
+    repo: huggingface/huggingface_hub
+    root: docs/source/en/
+    url_base: https://huggingface.co/docs/huggingface_hub/en/
+    exclude: [package_reference/, _toctree]
+    priority: [installation, quick-start, guides/download, guides/upload, guides/search, guides/cli, guides/model-cards, guides/inference, guides/repository]
+    max_pages: 22
+    category: huggingface_hub
+  - name: sentence-transformers
+    repo: huggingface/sentence-transformers
+    root: docs/
+    url_base: https://www.sbert.net/docs/
+    url_suffix: .html
+    exclude: [package_reference/, _static/, _templates/]
+    priority: [installation, quickstart, sentence_transformer/usage/usage, sentence_transformer/training_overview, sentence_transformer/pretrained_models, cross_encoder/usage/usage, cross_encoder/training_overview, sentence_transformer/loss_overview]
+    max_pages: 28
+    category: sentence_transformers
+  - name: hub
+    repo: huggingface/hub-docs
+    root: docs/hub/
+    url_base: https://huggingface.co/docs/hub/
+    exclude: [_toctree]
+    priority: [index, models-the-hub, model-cards, datasets-cards, repositories, repositories-getting-started, models-uploading, models-downloading, datasets-overview, datasets-adding, security, storage-limits, spaces-overview, models-libraries, model-card-guidebook, organizations]
+    max_pages: 40
+    category: hub

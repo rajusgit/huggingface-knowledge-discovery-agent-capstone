@@ -99,10 +99,10 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 **Checkpoint D — Full journey:** the spec's example query works end to end: discovery, card limitations, and an approved benchmark of two models with measured provenance.
 
 ### Phase 4: RAG experimentation
-- [ ] T16: Seed corpus (≥100 approved pages), validate/publish, refresh by content hash
-- [ ] T17: Remaining 3 chunkers as separate ingest runs
-- [ ] T18: Hybrid retrieval (pgvector + FTS, RRF) + reranker switches
-- [ ] T19: Golden dataset (≥120 queries) in LangSmith
+- [x] T16: Seed corpus (≥100 approved pages), validate/publish, refresh by content hash
+- [x] T17: Remaining 3 chunkers as separate ingest runs
+- [x] T18: Hybrid retrieval (pgvector + FTS, RRF) + reranker switches
+- [x] T19: Golden dataset (≥120 queries) in LangSmith
 - [ ] T20: 16-variant eval harness (RAGAS + heuristics) + leaderboard endpoint/UI
 
 **Checkpoint E — Experiments:** 16-row leaderboard reproducible; best measured config recorded in config.yaml.

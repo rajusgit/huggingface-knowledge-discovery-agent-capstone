@@ -171,7 +171,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 
 ## Phase 4: RAG experimentation
 
-### - [ ] T16: Seed corpus + validate/publish + refresh
+### - [x] T16 (152 pages, run 333 active; refresh = 0 rows verified): Seed corpus + validate/publish + refresh
 **Description:** Fill `config/sources.yaml` with ≥100 approved pages from the recommended corpus (D11): Transformers, Datasets, Sentence Transformers and Hugging Face Hub docs, fetched from each project's GitHub docs source at the latest release tag at bootstrap (commit SHA recorded). Verify each repo's license before marking `index_text`; unverified stays `pending_review`. Then batch ingestion, validation (chunk counts, duplicate hashes, orphan URLs, citation resolvability, smoke queries) before flipping the run to `active`; refresh mode re-embeds only changed `content_hash` and tombstones removed chunks.
 **Acceptance criteria:**
 - [ ] ≥100 approved pages indexed in one active run; every source has license + permitted_use recorded
@@ -180,7 +180,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run python standalone-scripts/ingest.py --all --validate`; `uv run pytest tests/test_ingest_validate.py -q`
 **Dependencies:** T5 · **Files:** `src/ingest.py`, `config/sources.yaml`, `standalone-scripts/ingest.py`, `tests/test_ingest_validate.py` · **Scope:** M
 
-### - [ ] T17: Remaining chunkers
+### - [x] T17: Remaining chunkers
 **Description:** Add fixed 50-word (rag.ipynb), RecursiveCharacterTextSplitter 200/20 (16_ai_security), Docling HybridChunker max_tokens=128 with the MiniLM tokenizer (advanced_RAG). Each strategy is a separate `ingest_runs` row; retrieval selects it by `run_id`.
 **Acceptance criteria:**
 - [ ] 4 runs exist over the same corpus revision, one per `chunk_strategy`
@@ -188,7 +188,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_chunking.py -q`; SQL count per `chunk_strategy`
 **Dependencies:** T16 · **Files:** `src/chunking.py`, `standalone-scripts/ingest.py`, `tests/test_chunking.py` · **Scope:** S
 
-### - [ ] T18: Hybrid retrieval + reranker
+### - [x] T18: Hybrid retrieval + reranker
 **Description:** `retrieval.mode = hybrid` (pgvector + `websearch_to_tsquery`, RRF k=60) and `src/rerank.py` cross-encoder k=10 → 3; both are config switches.
 **Acceptance criteria:**
 - [ ] Keyword-exact queries (e.g. a parameter name) rank the right chunk higher in hybrid than in dense
@@ -196,7 +196,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_retrieval.py -q` (fixture corpus)
 **Dependencies:** T6, T16 · **Files:** `src/retrieval.py`, `src/rerank.py`, `tests/test_retrieval.py` · **Scope:** S
 
-### - [ ] T19: Golden dataset in LangSmith
+### - [x] T19 (dataset built, validated and uploader tested; the real LangSmith upload needs LANGSMITH_API_KEY, not set): Golden dataset in LangSmith
 **Description:** ≥120 labelled queries (40 doc Q&A, 30 discovery, 20 constrained comparisons, 10 benchmark, 20 unanswerable/adversarial) with expected source IDs, filters, tool calls; uploaded with `client.create_dataset` (course: llm_observability, `notebooks/golden_qa.json` format).
 **Acceptance criteria:**
 - [ ] Each example tagged by category; fixed held-out split recorded

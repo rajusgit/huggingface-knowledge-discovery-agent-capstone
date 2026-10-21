@@ -19,9 +19,9 @@ def fake_embed(texts):
 
 
 def test_chunk_id_is_deterministic_and_content_sensitive():
-    a = ingest.chunk_id("s", "rev", "hierarchical", 0, "h1")
-    assert a == ingest.chunk_id("s", "rev", "hierarchical", 0, "h1")
-    assert a != ingest.chunk_id("s", "rev", "hierarchical", 0, "h2")
+    a = ingest.chunk_id("s", "rev", "hierarchical", 0, "h1", corpus_rev="c")
+    assert a == ingest.chunk_id("s", "rev", "hierarchical", 0, "h1", corpus_rev="c")
+    assert a != ingest.chunk_id("s", "rev", "hierarchical", 0, "h2", corpus_rev="c")
     assert len(a) == 64
 
 
@@ -93,3 +93,145 @@ def test_publish_refuses_empty_run(conn):
     r = ingest.start_run(conn, "rev-empty", "hierarchical")
     with pytest.raises(ingest.IngestRefused):
         ingest.publish(conn, r)
+
+
+# ---- batch ingestion: reuse, validation, withdraw ---------------------------------------
+
+def counting_embed():
+    calls = []
+
+    def embed(texts):
+        calls.append(len(texts))
+        return [[0.1] * 384 for _ in texts]
+    embed.calls = calls
+    return embed
+
+
+def test_pinned_sha_needs_no_network(monkeypatch):
+    monkeypatch.setattr(ingest, "_get", lambda *a, **k: pytest.fail("network used"))
+    s = ingest.Source(**{**SRC.__dict__, "ref": "v9", "sha": "deadbeef"})
+    assert ingest.resolve_revision(s) == ("v9", "deadbeef")
+
+
+def test_rerun_embeds_nothing(conn):
+    emb = counting_embed()
+    ingest.upsert_source(conn, SRC, version="v1")
+    run_id = ingest.start_run(conn, "reuse-rev", "hierarchical")
+    n1 = ingest.ingest_source(conn, SRC, TEXT, "sha123", run_id, emb, "hierarchical")
+    first_calls = sum(emb.calls)
+    n2 = ingest.ingest_source(conn, SRC, TEXT, "sha123", run_id, emb, "hierarchical")
+    assert n1 > 0 and n2 == 0 and sum(emb.calls) == first_calls      # second pass: no embedding at all
+
+
+def test_new_revision_reuses_embeddings_for_unchanged_chunks(conn):
+    emb = counting_embed()
+    ingest.upsert_source(conn, SRC, version="v1")
+    r1 = ingest.start_run(conn, "rev-one", "hierarchical")
+    ingest.ingest_source(conn, SRC, TEXT, "sha-one", r1, emb, "hierarchical")
+    before = sum(emb.calls)
+    r2 = ingest.start_run(conn, "rev-two", "hierarchical")
+    stats = {}
+    n = ingest.ingest_source(conn, SRC, TEXT, "sha-two", r2, emb, "hierarchical", stats=stats)
+    assert n > 0 and sum(emb.calls) == before                          # new run rows, zero new embeddings
+    assert stats["reused"] == n and stats["embedded"] == 0
+
+
+def test_validate_run_passes_on_good_run(conn):
+    run_id, _ = _run(conn)
+    res = ingest.validate_run(conn, run_id, check_urls=lambda urls: [], search=lambda q, run_id: [{"source_url": "https://example.org/a"}],
+                              smoke=[{"query": "q", "expect": "example.org"}])
+    assert res["ok"] and res["errors"] == [] and res["stats"]["chunks"] > 0 and res["stats"]["sources"] == 1
+
+
+def test_validate_run_flags_each_problem(conn):
+    empty = ingest.start_run(conn, "val-empty", "hierarchical")
+    assert "no chunks" in " ".join(ingest.validate_run(conn, empty, check_urls=lambda u: [], search=lambda q, run_id: [], smoke=[])["errors"])
+    run_id, _ = _run(conn)
+    bad_url = ingest.validate_run(conn, run_id, check_urls=lambda urls: list(urls), search=lambda q, run_id: [], smoke=[])
+    assert not bad_url["ok"] and "broken" in " ".join(bad_url["errors"])
+    miss = ingest.validate_run(conn, run_id, check_urls=lambda u: [], search=lambda q, run_id: [{"source_url": "https://other"}],
+                               smoke=[{"query": "q", "expect": "example.org"}])
+    assert not miss["ok"] and "smoke" in " ".join(miss["errors"])
+
+
+def test_failed_validation_leaves_previous_active_run(conn):
+    a = ingest.start_run(conn, "keep-a", "hierarchical")
+    ingest.publish(conn, a, require_chunks=False)
+    b = ingest.start_run(conn, "bad-b", "hierarchical")           # no chunks -> invalid
+    res = ingest.validate_run(conn, b, check_urls=lambda u: [], search=lambda q, run_id: [], smoke=[])
+    ingest.finish_validation(conn, b, res)
+    st = dict(conn.execute("SELECT run_id, status FROM ingest_runs WHERE run_id IN (%s,%s)", (a, b)).fetchall())
+    assert st[a] == "active" and st[b] == "failed"
+    with pytest.raises(ingest.IngestRefused):
+        ingest.publish(conn, b)
+
+
+def test_withdraw_tombstones_chunks_and_rejects_source(conn):
+    run_id, _ = _run(conn)
+    n = ingest.withdraw_source(conn, SRC.source_id)
+    assert n > 0
+    assert conn.execute("SELECT count(*) FROM doc_chunks WHERE run_id=%s AND deleted_at IS NULL", (run_id,)).fetchone()[0] == 0
+    assert conn.execute("SELECT permitted_use FROM sources WHERE source_id=%s", (SRC.source_id,)).fetchone()[0] == "rejected"
+
+
+# ---- URL checking classifies by outcome --------------------------------------------------
+
+def test_url_check_only_definitive_failures_are_broken(monkeypatch):
+    statuses = {"ok": 200, "redirect": 301, "gone": 404, "removed": 410, "rate": 429, "oops": 503, "net": None}
+    monkeypatch.setattr(ingest, "_url_status", lambda url: statuses[url])
+    monkeypatch.setattr(ingest, "_sleep", lambda s: None)
+    broken, unverified = ingest.check_urls_detail(list(statuses))
+    assert sorted(broken) == ["gone", "removed"]
+    assert sorted(unverified) == ["net", "oops", "rate"]          # not counted as broken
+
+
+def test_url_check_retries_transient_failures_before_giving_up(monkeypatch):
+    seq = iter([429, 429, 200])
+    monkeypatch.setattr(ingest, "_url_status", lambda url: next(seq))
+    monkeypatch.setattr(ingest, "_sleep", lambda s: None)
+    assert ingest.check_urls_detail(["u"]) == ([], [])
+
+
+def test_each_strategy_gets_its_own_run_over_the_same_corpus(conn):
+    strategies = ("hierarchical", "fixed50", "recursive200", "hybrid128")
+    ingest.upsert_source(conn, SRC, version="v1")
+    runs = {}
+    for s in strategies:
+        runs[s] = ingest.start_run(conn, "same-corpus", s)
+        assert ingest.ingest_source(conn, SRC, TEXT, "sha123", runs[s], fake_embed, s) > 0
+    assert len(set(runs.values())) == 4
+    got = dict(conn.execute("SELECT chunk_strategy, run_id FROM ingest_runs WHERE corpus_revision='same-corpus'").fetchall())
+    assert got == runs
+    # chunk ids differ per strategy, so one corpus can hold all four side by side
+    assert conn.execute("SELECT count(DISTINCT chunk_strategy) FROM doc_chunks WHERE run_id = ANY(%s)", (list(runs.values()),)).fetchone()[0] == 4
+
+
+@pytest.mark.parametrize("strategy,flag,expected", [
+    ("hierarchical", None, True),      # the configured default chunker is published
+    ("fixed50", None, False),          # experiment variants are validated but never become active
+    ("fixed50", True, True),           # unless explicitly asked
+    ("hierarchical", False, False),
+])
+def test_publish_policy(strategy, flag, expected):
+    assert ingest.should_publish(strategy, flag) is expected
+
+
+def test_two_runs_over_the_same_revision_each_hold_the_full_corpus(conn):
+    """Regression: chunk_id used to ignore the run, so a second run at an unchanged repo commit
+    silently inserted nothing (ON CONFLICT DO NOTHING) and was missing its pages."""
+    emb = counting_embed()
+    ingest.upsert_source(conn, SRC, version="v1")
+    a = ingest.start_run(conn, "corpus-A", "hierarchical")
+    b = ingest.start_run(conn, "corpus-B", "hierarchical")           # different corpus_revision, SAME source revision
+    na = ingest.ingest_source(conn, SRC, TEXT, "same-sha", a, emb, "hierarchical")
+    nb = ingest.ingest_source(conn, SRC, TEXT, "same-sha", b, emb, "hierarchical")
+    assert na > 0 and nb == na
+    for run in (a, b):
+        assert conn.execute("SELECT count(*) FROM doc_chunks WHERE run_id=%s", (run,)).fetchone()[0] == na
+    ids = conn.execute("SELECT count(DISTINCT chunk_id) FROM doc_chunks WHERE run_id IN (%s,%s)", (a, b)).fetchone()[0]
+    assert ids == 2 * na                                              # ids are unique per run
+    assert ingest.ingest_source(conn, SRC, TEXT, "same-sha", b, emb, "hierarchical") == 0   # still idempotent within a run
+
+
+def test_chunk_id_depends_on_the_corpus_revision():
+    assert ingest.chunk_id("s", "rev", "hierarchical", 0, "h", corpus_rev="A") != ingest.chunk_id("s", "rev", "hierarchical", 0, "h", corpus_rev="B")

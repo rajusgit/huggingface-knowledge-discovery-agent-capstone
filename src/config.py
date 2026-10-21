@@ -25,6 +25,7 @@ class Database(BaseModel):
 
 class Embedding(BaseModel):
     model: str
+    tokenizer: str
     dim: int
 
 
@@ -33,6 +34,7 @@ class Retrieval(BaseModel):
     k: int = 10
     top_n: int = 3
     score_threshold: float = 0.30
+    rerank: bool = False
     reranker: str | None = None
     chunker: str = "hierarchical"
     fixed_chunk_words: int = 50
@@ -47,6 +49,13 @@ class Router(BaseModel):
     routes_file: str = "config/routes.yaml"
     threshold: float = 0.35
     combined_margin: float = 0.05
+
+
+class Guard(BaseModel):
+    enabled: bool = True
+    routes_file: str = "config/guard_routes.yaml"
+    threshold: float = 0.40
+    self_check: bool = True
 
 
 class Agent(BaseModel):
@@ -86,6 +95,26 @@ class Ingest(BaseModel):
     fetch_timeout_seconds: int = 30
     fetch_max_retries: int = 3
     embed_batch_size: int = 64
+    allowed_licenses: list[str] = []
+    min_page_bytes: int = 1500
+    max_page_bytes: int = 120000
+    max_duplicate_ratio: float = 0.2
+    max_broken_url_ratio: float = 0.02
+    url_check_workers: int = 2
+    url_check_delay_seconds: float = 0.5
+    url_check_backoff_seconds: float = 2.0
+    url_check_timeout_seconds: int = 15
+    smoke_queries: list[dict] = []
+
+
+class Evals(BaseModel):
+    golden_file: str
+    dataset_name: str
+    results_file: str = "observability/reports/variants.json"
+    report_file: str = "observability/reports/leaderboard.md"
+    recall_k: int = 5
+    workers: int = 4
+    bootstrap_samples: int = 1000
 
 
 class Api(BaseModel):
@@ -112,11 +141,13 @@ class Settings(BaseSettings):
     database: Database
     retrieval: Retrieval
     router: Router
+    guard: Guard
     agent: Agent
     huggingface: HuggingFace
     benchmarks: Benchmarks
     api: Api
     ingest: Ingest
+    evals: Evals
 
     @property
     def dsn(self) -> str:

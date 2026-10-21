@@ -14,6 +14,7 @@ llm:
 
 embedding:
   model: "all-MiniLM-L6-v2"
+  tokenizer: "sentence-transformers/all-MiniLM-L6-v2"   # HybridChunker counts tokens with this
   dim: 384
 
 database:
@@ -30,7 +31,8 @@ retrieval:
   k: 10
   top_n: 3
   score_threshold: 0.30
-  reranker: "cross-encoder/ms-marco-MiniLM-L-6-v2"   # null disables reranking
+  rerank: true                     # switch: cross-encoder rerank of the candidates
+  reranker: "cross-encoder/ms-marco-MiniLM-L-6-v2"
   chunker: "hierarchical"          # hierarchical | fixed50 | recursive200 | hybrid128
   fixed_chunk_words: 50
   recursive_chunk_size: 200
@@ -43,6 +45,12 @@ router:
   routes_file: "config/routes.yaml"
   threshold: 0.35                  # min cosine similarity to accept a route (else out_of_scope)
   combined_margin: 0.05            # a 2nd route within this margin makes the intent combined
+
+guard:
+  enabled: true                   # semantic input guard (PII masking is always on)
+  routes_file: "config/guard_routes.yaml"
+  threshold: 0.40                  # min similarity for a blocking route to count
+  self_check: true                 # extra LLM policy check on every message (one cheap call)
 
 agent:
   history_turns: 6                 # past turns shown to the LLM when memory is on
@@ -90,3 +98,27 @@ ingest:
   fetch_timeout_seconds: 30
   fetch_max_retries: 3
   embed_batch_size: 64
+  allowed_licenses: [Apache-2.0, MIT, BSD-3-Clause, CC-BY-4.0]   # repo licenses cleared for indexing
+  min_page_bytes: 1500
+  max_page_bytes: 120000
+  max_duplicate_ratio: 0.2         # validation: share of chunks with a repeated content hash
+  max_broken_url_ratio: 0.02       # validation: share of citation URLs that must resolve
+  url_check_workers: 2             # low on purpose: huggingface.co rate-limits (429) bursts
+  url_check_delay_seconds: 0.5     # pause before each check
+  url_check_backoff_seconds: 2.0   # base for exponential backoff on 429/5xx
+  url_check_timeout_seconds: 15
+  smoke_queries:                   # validation: each must retrieve a chunk whose URL contains `expect`
+    - {query: "How do I limit the length of generated text?", expect: "/docs/transformers/"}
+    - {query: "How do I load a dataset with the datasets library?", expect: "/docs/datasets/"}
+    - {query: "How do I upload a file to the Hub with huggingface_hub?", expect: "/docs/huggingface_hub/"}
+    - {query: "How do I train a Sentence Transformer model?", expect: "sbert.net"}
+    - {query: "How do I create a model card on the Hub?", expect: "/docs/hub/"}
+
+evals:
+  golden_file: "observability/golden/golden.json"
+  dataset_name: "hf-knowledge-agent-golden-v1"   # LangSmith dataset
+  results_file: "observability/reports/variants.json"
+  report_file: "observability/reports/leaderboard.md"
+  recall_k: 5                      # candidates scored for Recall@k / MRR (the LLM sees retrieval.top_n of them)
+  workers: 4                       # parallel LLM calls while evaluating
+  bootstrap_samples: 1000
