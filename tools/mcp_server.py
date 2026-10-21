@@ -4,7 +4,7 @@ Read-only, allowlisted tools. Tool outputs are untrusted data for the agent.
 """
 from mcp.server.fastmcp import FastMCP
 
-from tools import compare, hf_client
+from tools import benchmarks, compare, hf_client
 
 mcp = FastMCP("hf-discovery")
 
@@ -58,6 +58,15 @@ def compare_resources(ids: list[str], kind: str = "models", constraints: dict | 
     licenses (list), max_parameters (int), language (str), task (str). Missing fields are
     reported as warnings, never guessed."""
     return compare.compare_resources(ids, kind=kind, constraints=constraints)
+
+
+@mcp.tool()
+def benchmark_embedding_model(model_id: str, dataset_id: str, seed: int | None = None) -> dict:
+    """Benchmark an allowlisted embedding model on an approved retrieval dataset in a sandboxed
+    subprocess. Returns measured Recall@k, MRR, nDCG, latency, hardware and versions.
+    Restricted: requires explicit human approval before it is called."""
+    rec = benchmarks.benchmark_embedding_model(model_id, dataset_id, seed)
+    return {k: (str(v) if k == "job_id" else v.isoformat() if hasattr(v, "isoformat") else v) for k, v in rec.items()}
 
 
 @mcp.tool()

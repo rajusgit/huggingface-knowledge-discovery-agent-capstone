@@ -8,7 +8,7 @@ from src.config import ROOT
 
 EXPECTED = {"search_models", "search_embedding_models", "get_model_details",
             "search_datasets", "get_dataset_details", "search_docs", "get_card_section",
-            "compare_resources"}
+            "compare_resources", "benchmark_embedding_model"}
 
 
 async def _list():

@@ -56,3 +56,10 @@ def test_postgres_checkpointer_remembers_across_turns(monkeypatch):
         raise
     assert any("PINEAPPLE" in m["content"] for m in seen[1])
     assert not any("PINEAPPLE" in m["content"] for m in seen[2])
+
+
+def test_benchmark_tool_is_not_exposed_to_the_llm_by_default():
+    default = {t.name for t in asyncio.run(asyncio.wait_for(mcp_tools.load_tools(), 120))}
+    assert "benchmark_embedding_model" not in default           # needs human approval (T15)
+    everything = {t.name for t in asyncio.run(asyncio.wait_for(mcp_tools.load_tools(restricted=True), 120))}
+    assert "benchmark_embedding_model" in everything

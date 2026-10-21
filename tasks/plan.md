@@ -93,7 +93,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 
 ### Phase 3: Compare + Evaluate (benchmarks)
 - [x] T13: `get_card_section` + `compare_resources` tools, `/api/compare`, UI compare table
-- [ ] T14: Benchmark runner (sandboxed subprocess) + `benchmark_runs` + MCP tool
+- [x] T14: Benchmark runner (sandboxed subprocess) + `benchmark_runs` + MCP tool
 - [ ] T15: Benchmark approval (LangGraph `interrupt()`), `/api/benchmarks`, UI results table
 
 **Checkpoint D — Full journey:** the spec's example query works end to end: discovery, card limitations, and an approved benchmark of two models with measured provenance.

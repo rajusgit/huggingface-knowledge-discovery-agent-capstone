@@ -147,7 +147,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_compare.py -q`; manual: compare two embedding models in UI
 **Dependencies:** T9, T11 · **Files:** `tools/hf_client.py`, `tools/mcp_server.py`, `src/api.py`, `ui/src/components/Compare.tsx`, `tests/test_compare.py` · **Scope:** M
 
-### - [ ] T14: Benchmark runner + `benchmark_runs`
+### - [x] T14 (real benchmark dataset still pending from the developer script; fixture used): Benchmark runner + `benchmark_runs`
 **Description:** `tools/benchmarks.py`: runs an allowlisted sentence-transformers model on an approved small retrieval dataset in a **subprocess** (no Docker) with wall-clock timeout + `resource` memory limit from config (`benchmarks.max_runtime_seconds`, `max_memory_mb`), no `trust_remote_code`. The real dataset comes from the developer's standalone fetch script (D12, pending); build and test against a tiny in-repo fixture until it arrives. Records Recall@k, MRR, nDCG, latency, memory, seed, hardware, model/dataset revisions in `benchmark_runs`. Exposed as MCP tool `benchmark_embedding_model`.
 **Acceptance criteria:**
 - [ ] Same model + dataset + seed re-run reproduces metrics within a stated tolerance

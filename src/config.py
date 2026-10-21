@@ -68,6 +68,13 @@ class HuggingFace(BaseModel):
 class Benchmarks(BaseModel):
     max_runtime_seconds: int = 600
     max_memory_mb: int = 4096
+    dataset_dir: str = "data/benchmarks"
+    ks: list[int] = [1, 5, 10]
+    default_seed: int = 0
+    max_corpus_docs: int = 5000
+    max_queries: int = 1000
+    allowed_models: list[str] = []
+    prefixes: dict[str, dict[str, str]] = {}
 
 
 class Ingest(BaseModel):

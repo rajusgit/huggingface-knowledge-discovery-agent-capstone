@@ -6,7 +6,11 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from src import config
 
 
-async def load_tools() -> list:
+# Tools that must never be handed to the LLM's own tool loop: they need human approval first.
+RESTRICTED = {"benchmark_embedding_model"}
+
+
+async def load_tools(restricted: bool = False) -> list:
     client = MultiServerMCPClient({
         "hf": {
             "transport": "stdio",
@@ -15,4 +19,5 @@ async def load_tools() -> list:
             "cwd": str(config.ROOT),
         }
     })
-    return await client.get_tools()
+    tools = await client.get_tools()
+    return tools if restricted else [t for t in tools if t.name not in RESTRICTED]

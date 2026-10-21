@@ -60,7 +60,19 @@ huggingface:
 
 benchmarks:
   max_runtime_seconds: 600
-  max_memory_mb: 4096
+  max_memory_mb: 4096              # enforced via RLIMIT_AS on Linux; checked after the run elsewhere
+  dataset_dir: "data/benchmarks"   # <dataset_id>.json files (written by the dataset fetch script)
+  ks: [1, 5, 10]
+  default_seed: 0
+  max_corpus_docs: 5000
+  max_queries: 1000
+  allowed_models:                  # only these may be benchmarked (no arbitrary repos)
+    - sentence-transformers/all-MiniLM-L6-v2
+    - BAAI/bge-small-en-v1.5
+    - intfloat/multilingual-e5-small
+    - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  prefixes:                        # per-model text prefixes the model was trained with
+    intfloat/multilingual-e5-small: {query: "query: ", passage: "passage: "}
 
 api:
   auth_enabled: false              # true on Railway; key comes from env API_KEY
