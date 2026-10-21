@@ -270,7 +270,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** CI run passes; manual fresh-clone walkthrough
 **Dependencies:** All · **Files:** `.github/workflows/ci.yml`, `README.md`, `observability/reports/final.md` · **Scope:** S
 
-### - [ ] T26: Railway deployment + API auth
+### - [ ] T26 (CODE + TESTS DONE: auth, env overrides, /healthz, railway.json, UI key header; NOT DONE: the Railway deploy and deployed smoke tests, which need the account owner): Railway deployment + API auth
 **Description:** Deploy API and UI to Railway (no Dockerfile; uv build) **[outside course]**. Auth switched on by `api.auth_enabled: true` in the deployed config, off for the local demo (D9a). Mechanism: **static API key** in an `X-API-Key` header, compared with `secrets.compare_digest` against env var `API_KEY`; the UI sends it from `VITE_API_KEY`. Secrets set as Railway environment variables, never committed.
 **Acceptance criteria:**
 - [ ] Deployed `/api/*` returns 401 with a missing or wrong key and works with the right one; local run still needs no key

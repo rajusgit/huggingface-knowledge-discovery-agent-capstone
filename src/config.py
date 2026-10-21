@@ -66,6 +66,7 @@ class Guard(BaseModel):
     self_check: bool = True
     passage_check: bool = True
     passage_chars: int = 1200
+    output_window_chars: int = 80
 
 
 class Agent(BaseModel):
@@ -172,7 +173,16 @@ class Settings(BaseSettings):
 
 
 def load_yaml(path: Path = CONFIG_PATH) -> dict:
-    return yaml.safe_load(path.read_text())
+    """config.yaml, with the few deployment overrides that come from env vars (Railway): they let a host
+    switch auth on and set the UI origin without editing the file."""
+    import os
+
+    data = yaml.safe_load(path.read_text())
+    if os.environ.get("API_AUTH_ENABLED"):
+        data["api"]["auth_enabled"] = os.environ["API_AUTH_ENABLED"].strip().lower() in ("1", "true", "yes", "on")
+    if os.environ.get("CORS_ORIGINS"):
+        data["api"]["cors_origins"] = [o.strip() for o in os.environ["CORS_ORIGINS"].split(",") if o.strip()]
+    return data
 
 
 @lru_cache

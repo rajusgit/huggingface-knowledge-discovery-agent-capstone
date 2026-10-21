@@ -17,13 +17,13 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from agents import guards
-from src import config
+from src import auth, config
 from tools import benchmarks, compare, hf_client
 
 log = logging.getLogger("api")
@@ -36,19 +36,26 @@ _NS = uuid.UUID("6f1c1b7e-3b52-4d3e-9a63-0c7d3b0e2a11")  # thread ids are stored
 async def lifespan(app: FastAPI):
     from agents import graph, mcp_tools, memory
 
+    auth.check_startup()
     tools = await mcp_tools.load_tools()
     async with memory.postgres_checkpointer() as saver:
         app.state.agent = graph.build_agent(tools=tools, checkpointer=saver)
         yield
 
 
-app = FastAPI(title="HF Knowledge & Discovery Agent", lifespan=lifespan)
+app = FastAPI(title="HF Knowledge & Discovery Agent", lifespan=lifespan, dependencies=[Depends(auth.require_api_key)])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cfg.api.cors_origins,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"],   # includes X-API-Key
 )
+
+
+@app.get("/healthz")
+def healthz() -> dict:
+    """Liveness probe for the host (no auth, no data)."""
+    return {"status": "ok"}
 
 
 class ChatRequest(BaseModel):

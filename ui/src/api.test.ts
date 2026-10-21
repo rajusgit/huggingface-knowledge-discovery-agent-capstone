@@ -148,3 +148,16 @@ describe('leaderboardRows', () => {
     expect(leaderboardRows(d).find((r) => r.variant.startsWith('a'))!.heldoutComposite).toBe('—')
   })
 })
+
+import { vi } from 'vitest'
+import { authHeaders } from './api'
+
+describe('authHeaders', () => {
+  it('sends X-API-Key only when a key is configured', () => {
+    vi.stubEnv('VITE_API_KEY', '')
+    expect(authHeaders()).toEqual({})
+    vi.stubEnv('VITE_API_KEY', 'k-123')
+    expect(authHeaders()).toEqual({ 'X-API-Key': 'k-123' })
+    vi.unstubAllEnvs()
+  })
+})

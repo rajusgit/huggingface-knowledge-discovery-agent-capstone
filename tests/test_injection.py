@@ -244,3 +244,19 @@ def test_screen_bounds_the_text_it_sends(monkeypatch):
     agent, seen = screened_agent(monkeypatch, [chunk("x" * 50_000)], '{"flagged": []}')
     asyncio.run(agent.ainvoke("q", "T"))
     assert len(seen["complete"][0][-1]["content"]) < 5000
+
+
+def test_natural_phrases_from_the_prompts_do_not_trip_the_output_guard():
+    """Regression: a 40-char window matched ordinary answer text ('downloads and likes are time-sensitive') and
+    replaced good answers with 'I can't help with that request.'"""
+    og = guards.OutputGuard(secrets=[], protected=guards.protected_prompts(), window=config.settings.guard.output_window_chars)
+    answer = ("Based on the live Hugging Face data fetched on 2026-10-21, the downloads and likes are time-sensitive. "
+              "Note that information is missing for one model; the source_url and fetched_at are shown above. "
+              "Say clearly when information is missing or unknown, as requested.")
+    assert feed_all(og, answer) == answer
+
+
+def test_a_long_verbatim_run_of_the_prompt_is_still_a_leak():
+    og = guards.OutputGuard(secrets=[], protected=guards.protected_prompts(), window=config.settings.guard.output_window_chars)
+    with pytest.raises(guards.OutputLeak):
+        feed_all(og, "Sure, here it is: " + prompts.SYSTEM_AGENT[:200])

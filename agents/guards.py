@@ -92,9 +92,10 @@ class OutputGuard:
     are held back so a secret or protected-prompt fragment is detected before any of it leaves the server
     (detection needs at most `window` characters, which is less than the holdback)."""
 
-    def __init__(self, secrets: list[str], protected: list[str], holdback: int = 64, window: int = 40):
+    def __init__(self, secrets: list[str], protected: list[str], holdback: int | None = None, window: int | None = None):
         self.secrets = [s for s in secrets if len(s) >= 8]
-        self.window, self.holdback = window, max(holdback, window + 1)
+        window = window or config.settings.guard.output_window_chars
+        self.window, self.holdback = window, max(holdback or 0, window + 16)
         self.windows = set()
         for t in protected:
             n = _norm(t)

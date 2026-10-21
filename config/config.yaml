@@ -60,6 +60,7 @@ guard:
   threshold: 0.40                  # min similarity for a blocking route to count
   self_check: true                 # extra LLM policy check on every message (one cheap call)
   passage_check: true              # one LLM call per doc question: drop retrieved passages that carry instructions for the AI
+  output_window_chars: 80          # a leak = this many consecutive characters of a system prompt in the answer
   passage_chars: 1200              # characters of each passage shown to that check
 
 agent:

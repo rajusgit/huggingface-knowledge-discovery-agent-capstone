@@ -173,3 +173,14 @@ def test_streams_tokens_via_custom_events(spy, monkeypatch):
     tokens = [e["text"] for kind, e in events if kind == "custom" and e.get("type") == "token"]
     assert "".join(tokens).startswith("Hello world")
     assert any(kind == "updates" for kind, _ in events)
+
+
+def test_every_tool_call_is_recorded_with_its_outcome(spy, monkeypatch):
+    spy.install(monkeypatch, tool_script=[
+        {"content": None, "tool_calls": [{"id": "a", "name": "search_models", "arguments": json.dumps({"query": "x"})},
+                                         {"id": "b", "name": "delete_everything", "arguments": "{}"},
+                                         {"id": "c", "name": "search_models", "arguments": "{not json"}]},
+        {"content": "", "tool_calls": []}])
+    out = run(g.build_agent(router=FakeRouter(["discover"]), tools=tools()), "find")
+    assert out["tool_calls"] == [{"tool": "search_models", "ok": True}, {"tool": "delete_everything", "ok": False},
+                                 {"tool": "search_models", "ok": False}]

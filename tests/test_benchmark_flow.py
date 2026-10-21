@@ -248,3 +248,33 @@ def test_api_drains_stream_after_interrupt_so_checkpoint_is_saved(client):
     ev = sse(client.post("/api/chat", json={"message": "benchmark", "thread_id": "t1"}))
     assert done == ["persisted"]
     assert [e["type"] for e in ev] == ["approval_required"]       # internal pseudo-nodes hidden, no final
+
+
+# ---- the planner decides whether this is a benchmark request at all ------------------------------------------
+
+def test_a_non_benchmark_question_the_router_called_evaluate_falls_back_to_docs_and_tools(bench, monkeypatch):
+    """Regression: 'How do I apply a function to every example?' was routed 'evaluate' and answered with
+    'Tell me which models and which dataset to benchmark'."""
+    seen = {"retrieve": 0}
+    monkeypatch.setattr(retrieval, "retrieve", lambda *a, **k: (seen.__setitem__("retrieve", seen["retrieve"] + 1), [])[1])
+    llm_script(monkeypatch, {"is_benchmark_request": False, "models": [], "dataset": None})
+    agent, _ = agent_with()
+    out = asyncio.run(agent.ainvoke("How do I apply a function to every example in a dataset?", "T"))
+    assert out["interrupt"] is None and seen["retrieve"] == 1               # went on to retrieval
+    assert "which models" not in (out["answer"] or "").lower() and bench["create"] == []
+    assert "evaluate" not in out["routes"] and "learn" in out["routes"]
+
+
+def test_fallback_happens_even_when_no_benchmark_datasets_exist(bench, monkeypatch):
+    monkeypatch.setattr(benchmarks, "list_datasets", lambda: [])
+    monkeypatch.setattr(retrieval, "retrieve", lambda *a, **k: [])
+    llm_script(monkeypatch, {"is_benchmark_request": False, "models": [], "dataset": None})
+    agent, _ = agent_with()
+    out = asyncio.run(agent.ainvoke("List zero-shot classification models", "T"))
+    assert "no benchmark datasets" not in (out["answer"] or "").lower()
+
+
+def test_a_real_benchmark_request_still_pauses_for_approval(bench, monkeypatch):
+    llm_script(monkeypatch, {"is_benchmark_request": True, "models": [M1], "dataset": "bench_tiny"})
+    agent, _ = agent_with()
+    assert asyncio.run(agent.ainvoke("benchmark it", "T"))["interrupt"]["type"] == "benchmark_approval"

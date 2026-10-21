@@ -58,6 +58,12 @@ export type ChatEvent =
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
 
+/** X-API-Key for a deployed API (the key is embedded in the bundle at build time: visible to anyone who can load the UI). */
+export function authHeaders(): Record<string, string> {
+  const key = import.meta.env.VITE_API_KEY as string | undefined
+  return key ? { 'X-API-Key': key } : {}
+}
+
 /** Split a growing SSE buffer into complete `data:` events plus the unfinished tail. */
 export function parseSSE(rest: string, chunk: string): { events: ChatEvent[]; rest: string } {
   const parts = (rest + chunk).split('\n\n')
@@ -144,7 +150,7 @@ export interface HubResponse {
 }
 
 export async function searchHub(kind: HubKind, f: SearchFilters, signal?: AbortSignal): Promise<HubResponse> {
-  const res = await fetch(buildSearchUrl(kind, f), { signal })
+  const res = await fetch(buildSearchUrl(kind, f), { headers: authHeaders(), signal })
   if (!res.ok) {
     const detail = res.status === 422 ? 'Invalid filters.' : res.status === 502 ? 'Hugging Face is unavailable.' : `Request failed (${res.status}).`
     throw new Error(detail)
@@ -192,7 +198,7 @@ export function leaderboardRows(d: LeaderboardData) {
 }
 
 export async function fetchLeaderboard(signal?: AbortSignal): Promise<LeaderboardData> {
-  const res = await fetch(`${API_URL}/api/evals/variants`, { signal })
+  const res = await fetch(`${API_URL}/api/evals/variants`, { headers: authHeaders(), signal })
   if (!res.ok) throw new Error(`Request failed (${res.status})`)
   return (await res.json()) as LeaderboardData
 }
@@ -282,7 +288,7 @@ export async function compareResources(
 ): Promise<CompareResponse> {
   const res = await fetch(`${API_URL}/api/compare`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ ids, kind, constraints }),
     signal,
   })
@@ -309,7 +315,7 @@ async function* readEvents(res: Response): AsyncGenerator<ChatEvent> {
 const post = (path: string, body: unknown, signal?: AbortSignal) =>
   fetch(`${API_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
     signal,
   })

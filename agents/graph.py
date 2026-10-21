@@ -50,6 +50,7 @@ class State(TypedDict, total=False):
     routes: list[str]
     chunks: list[dict]
     live: list[dict]
+    tool_calls: list[dict]
     bench_plan: dict
     bench_jobs: list[str]
     benchmarks: list[dict]
@@ -127,7 +128,7 @@ def build_graph(router, tools, checkpointer, guard):
 
     def classify_intent(state: State):
         intent = router.classify(state["question"])
-        return {"routes": intent.routes, "chunks": [], "live": [], "refused": False, "answer": "",
+        return {"routes": intent.routes, "chunks": [], "live": [], "tool_calls": [], "refused": False, "answer": "",
                 "citations": [], "invalid_citations": [], "live_sources": [], "bench_plan": {},
                 "bench_jobs": [], "benchmarks": []}
 
@@ -142,6 +143,11 @@ def build_graph(router, tools, checkpointer, guard):
 
     def unless_refused(nxt: str):
         return lambda state: "validate_evidence" if state.get("refused") else nxt
+
+    def after_plan(state: State) -> str:
+        if state.get("refused"):
+            return "validate_evidence"
+        return "authorize_benchmark" if "evaluate" in state["routes"] else "retrieve_docs"   # else: fell back
 
     def retrieve_docs(state: State):
         hits = [c for c in retrieval.retrieve(state["question"]) if c.get("content")]
@@ -158,6 +164,7 @@ def build_graph(router, tools, checkpointer, guard):
         messages = [{"role": "system", "content": prompts.SYSTEM_TOOLS}, *hist(state),
                     {"role": "user", "content": state["question"]}]
         live: list[dict] = []
+        calls: list[dict] = []
         for _ in range(cfg.max_tool_rounds):
             out = await asyncio.to_thread(_complete, messages, tools=openai_tools)
             if not out["tool_calls"]:
@@ -178,23 +185,31 @@ def build_graph(router, tools, checkpointer, guard):
                     except ValueError:
                         result = text
                     live.append({"tool": call["name"], "args": args, "result": result})
+                    calls.append({"tool": call["name"], "ok": True})
                 except Exception as e:  # report to the model; never crash the turn
                     text = json.dumps({"error": f"tool call failed: {type(e).__name__}: {e}"})
+                    calls.append({"tool": call["name"], "ok": False})
                 messages.append({"role": "tool", "tool_call_id": call["id"],
                                  "content": prompts.wrap_untrusted(text[:cfg.max_tool_result_chars])})
-        return {"live": live, "live_sources": [s for item in live for s in _live_sources(item["tool"], item["result"])]}
+        return {"live": live, "tool_calls": calls,
+                "live_sources": [s for item in live for s in _live_sources(item["tool"], item["result"])]}
 
     # ---- benchmarks: plan -> human approval -> enqueue -> poll -------------------------------
 
     def plan_benchmark(state: State):
         datasets = benchmarks.list_datasets()
-        if not datasets:
-            return _refuse("No benchmark datasets are available yet, so I can't run a benchmark.")
         system = prompts.SYSTEM_PLAN_BENCH.replace("{models}", ", ".join(bcfg.allowed_models)) \
-                                          .replace("{datasets}", ", ".join(datasets))
+                                          .replace("{datasets}", ", ".join(datasets) or "none")
         out = _complete([{"role": "system", "content": system}, *hist(state),
                          {"role": "user", "content": state["question"]}], temperature=0)
         data = _json_object(out["content"])
+        models_raw = data.get("models") or []
+        if not data.get("is_benchmark_request", bool(models_raw)):
+            # The router's "evaluate" was a false alarm (e.g. "evaluate" in a docs question): answer normally.
+            rest = [r for r in state["routes"] if r != "evaluate"]
+            return {"routes": sorted(set(rest) | {"learn", "discover"})}
+        if not datasets:
+            return _refuse("No benchmark datasets are available yet, so I can't run a benchmark.")
         # LLM output is untrusted: only allowlisted models / existing datasets survive.
         models = [m for m in dict.fromkeys(data.get("models") or [])
                   if isinstance(m, str) and m in bcfg.allowed_models][:bcfg.max_models_per_benchmark]
@@ -303,8 +318,7 @@ def build_graph(router, tools, checkpointer, guard):
                             ["retrieve_docs", "call_mcp_tools", "plan_benchmark", "validate_evidence"])
     g.add_conditional_edges("retrieve_docs", after_docs, ["call_mcp_tools", "validate_evidence"])
     g.add_edge("call_mcp_tools", "validate_evidence")
-    g.add_conditional_edges("plan_benchmark", unless_refused("authorize_benchmark"),
-                            ["authorize_benchmark", "validate_evidence"])
+    g.add_conditional_edges("plan_benchmark", after_plan, ["authorize_benchmark", "validate_evidence", "retrieve_docs"])
     g.add_conditional_edges("authorize_benchmark", unless_refused("enqueue_job"),
                             ["enqueue_job", "validate_evidence"])
     g.add_conditional_edges("enqueue_job", unless_refused("poll_results"), ["poll_results", "validate_evidence"])
@@ -316,7 +330,7 @@ def build_graph(router, tools, checkpointer, guard):
     return g.compile(checkpointer=checkpointer)
 
 
-RESULT_KEYS = ("answer", "citations", "invalid_citations", "live_sources", "live", "routes", "benchmarks", "guard_events")
+RESULT_KEYS = ("answer", "citations", "invalid_citations", "live_sources", "live", "tool_calls", "routes", "benchmarks", "guard_events")
 
 
 class Agent:
