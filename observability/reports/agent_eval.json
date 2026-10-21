@@ -1,0 +1,933 @@
+{
+ "by_category": {
+  "adversarial": {
+   "n": 10,
+   "latency_p50_ms": 21.803812500365893,
+   "latency_p95_ms": 678.3628373497776,
+   "routing": null,
+   "tool_called": null,
+   "constraints_ok": null,
+   "constraint_keys_ok": null,
+   "approval_ok": null,
+   "refused": 1.0,
+   "grounded": null
+  },
+  "benchmark": {
+   "n": 10,
+   "latency_p50_ms": 1520.2575415005413,
+   "latency_p95_ms": 4608.996924850906,
+   "routing": 0.875,
+   "tool_called": null,
+   "constraints_ok": null,
+   "constraint_keys_ok": null,
+   "approval_ok": 0.9,
+   "refused": null,
+   "grounded": null
+  },
+  "comparison": {
+   "n": 20,
+   "latency_p50_ms": 4060.64554149998,
+   "latency_p95_ms": 6452.144954198595,
+   "routing": 0.85,
+   "tool_called": 0.85,
+   "constraints_ok": 0.45,
+   "constraint_keys_ok": 0.45,
+   "approval_ok": null,
+   "refused": null,
+   "grounded": null
+  },
+  "discovery": {
+   "n": 30,
+   "latency_p50_ms": 5634.844645999692,
+   "latency_p95_ms": 6675.178872950164,
+   "routing": 0.9,
+   "tool_called": 1.0,
+   "constraints_ok": 1.0,
+   "constraint_keys_ok": null,
+   "approval_ok": null,
+   "refused": null,
+   "grounded": null
+  },
+  "doc_qa": {
+   "n": 40,
+   "latency_p50_ms": 2998.683042002085,
+   "latency_p95_ms": 8271.692462501773,
+   "routing": 0.85,
+   "tool_called": null,
+   "constraints_ok": null,
+   "constraint_keys_ok": null,
+   "approval_ok": null,
+   "refused": null,
+   "grounded": 0.675
+  },
+  "unanswerable": {
+   "n": 10,
+   "latency_p50_ms": 637.7549999997427,
+   "latency_p95_ms": 5247.204927299752,
+   "routing": null,
+   "tool_called": null,
+   "constraints_ok": null,
+   "constraint_keys_ok": null,
+   "approval_ok": null,
+   "refused": 0.9,
+   "grounded": null
+  }
+ },
+ "tool_calls": 102,
+ "tool_success": 1.0,
+ "errors": 0,
+ "n": 120,
+ "slowest": [
+  {
+   "id": "doc_qa-010",
+   "latency_ms": 16134.630250002374,
+   "routes": [
+    "discover"
+   ]
+  },
+  {
+   "id": "doc_qa-011",
+   "latency_ms": 10198.693124999409,
+   "routes": [
+    "discover"
+   ]
+  },
+  {
+   "id": "comparison-010",
+   "latency_ms": 8316.383708999638,
+   "routes": [
+    "discover"
+   ]
+  },
+  {
+   "id": "doc_qa-020",
+   "latency_ms": 8170.271375001903,
+   "routes": [
+    "discover",
+    "learn"
+   ]
+  },
+  {
+   "id": "doc_qa-035",
+   "latency_ms": 7410.457292000501,
+   "routes": [
+    "compare"
+   ]
+  },
+  {
+   "id": "doc_qa-033",
+   "latency_ms": 7358.430874999613,
+   "routes": [
+    "compare"
+   ]
+  },
+  {
+   "id": "discovery-010",
+   "latency_ms": 7306.142666999222,
+   "routes": [
+    "discover"
+   ]
+  },
+  {
+   "id": "doc_qa-028",
+   "latency_ms": 6988.429541997903,
+   "routes": [
+    "learn",
+    "discover"
+   ]
+  },
+  {
+   "id": "doc_qa-016",
+   "latency_ms": 6813.058250001632,
+   "routes": [
+    "learn",
+    "discover"
+   ]
+  },
+  {
+   "id": "discovery-022",
+   "latency_ms": 6737.517917001242,
+   "routes": [
+    "discover",
+    "compare"
+   ]
+  }
+ ],
+ "latency_p95_ms_excluding_benchmarks": 7334.901181399437,
+ "failures": [
+  {
+   "id": "doc_qa-006",
+   "question": "How do I load a LoRA adapter with PEFT in Transformers?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn"
+   ],
+   "tool_calls": [],
+   "answer": "Based on the provided documentation, you can automatically load the base model and attach the adapter using `AutoModelForCausalLM.from_pretrained`:\n\n```python\nf",
+   "error": null
+  },
+  {
+   "id": "doc_qa-010",
+   "question": "How do I fine-tune a model for extractive question answering?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To fine-tune a model for question answering using Hugging Face Transformers, you can follow these key steps based on the official documentation guidelines:\n\n###",
+   "error": null
+  },
+  {
+   "id": "doc_qa-011",
+   "question": "How do I train a causal language model from scratch or fine-tune one?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To fine-tune or train a causal language model using the Transformers library, you can use the `Trainer` class [3ad10c6e27228a10546877ab37abe6570a6cd5ea4880cdacc",
+   "error": null
+  },
+  {
+   "id": "doc_qa-012",
+   "question": "How can I run Transformers efficiently on CPU?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn"
+   ],
+   "tool_calls": [],
+   "answer": "To install a CPU-only version of Transformers, you can run the following commands [2]:\n\n```\nuv pip install torch --index-url https://download.pytorch.org/whl/cp",
+   "error": null
+  },
+  {
+   "id": "doc_qa-015",
+   "question": "How do I quantize a model to reduce memory use?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn"
+   ],
+   "tool_calls": [],
+   "answer": "To lower memory usage, you can quantize a model to 8-bit or 4-bit precision using **bitsandbytes** [1, 3]. \n\nAccording to the documentation:\n* You can create a ",
+   "error": null
+  },
+  {
+   "id": "doc_qa-016",
+   "question": "How do I load a dataset from the Hub with the datasets library?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn",
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To load a dataset from the Hub using the `datasets` library, you can use the `load_dataset` function [1, 2]. \n\nFor example [2]:\n```python\nfrom datasets import l",
+   "error": null
+  },
+  {
+   "id": "doc_qa-023",
+   "question": "How do I add a FAISS index to a dataset for similarity search?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To add a FAISS index to a dataset for similarity search, you can use the `Dataset.add_faiss_index` method on your dataset containing embeddings [cc3558acb9f360f",
+   "error": null
+  },
+  {
+   "id": "doc_qa-028",
+   "question": "How do I search for models programmatically with huggingface_hub?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn",
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To search for and list models programmatically using the `huggingface_hub` library, you can use the `HfApi` client and its `list_models` method [846e677b1ee1706",
+   "error": null
+  },
+  {
+   "id": "doc_qa-032",
+   "question": "Which pretrained sentence embedding models are available?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "discover",
+    "learn"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_embedding_models",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided documentation and Hugging Face data, the available pretrained sentence embedding models include:\n\n* **`sentence-transformers/all-MiniLM-L6",
+   "error": null
+  },
+  {
+   "id": "doc_qa-033",
+   "question": "How do I evaluate an embedding model on MTEB?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "To evaluate an embedding model on the Massive Text Embedding Benchmark (MTEB), you can use the `mteb` library alongside a model (such as a `SentenceTransformer`",
+   "error": null
+  },
+  {
+   "id": "doc_qa-035",
+   "question": "What is a model card and what should it contain?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "Model cards are files that accompany models and provide handy information [fdf642ff803f29103e84bb82d7ce77d3d2766aafbdd4b15dde8cb5b4176dcaaf]. Under the hood, th",
+   "error": null
+  },
+  {
+   "id": "doc_qa-039",
+   "question": "What does the Hub documentation say about security?",
+   "score": {
+    "routing": true,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "learn"
+   ],
+   "tool_calls": [],
+   "answer": "Based on the provided documentation, the Hugging Face Hub supports security and access control features to ensure code, models, and data are safe [3]. Specifica",
+   "error": null
+  },
+  {
+   "id": "doc_qa-040",
+   "question": "What are dataset cards on the Hub?",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": false
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "Dataset cards are pages on the Hugging Face Hub (whose contents are rendered on a dataset's main page) that help users understand a dataset's contents, the cont",
+   "error": null
+  },
+  {
+   "id": "discovery-014",
+   "question": "What license and parameter count does BAAI/bge-small-en-v1.5 have?",
+   "score": {
+    "routing": false,
+    "tool_called": true,
+    "constraints_ok": true,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data fetched at 2026-10-21T03:52:21Z from https://huggingface.co/BAAI/bge-small-en-v1.5:\n\n* **License:** MIT (`mit`)\n* **Paramete",
+   "error": null
+  },
+  {
+   "id": "discovery-016",
+   "question": "Tell me about intfloat/multilingual-e5-small",
+   "score": {
+    "routing": false,
+    "tool_called": true,
+    "constraints_ok": true,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the Hugging Face data for `intfloat/multilingual-e5-small` (source: https://huggingface.co/intfloat/multilingual-e5-small, fetched at 2026-10-21T03:52:",
+   "error": null
+  },
+  {
+   "id": "discovery-026",
+   "question": "Find the license of the model BAAI/bge-m3",
+   "score": {
+    "routing": false,
+    "tool_called": true,
+    "constraints_ok": true,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data (fetched at 2026-10-21T03:53:27Z from https://huggingface.co/BAAI/bge-m3), the license of the model `BAAI/bge-m3` is **mit**",
+   "error": null
+  },
+  {
+   "id": "comparison-001",
+   "question": "Compare all-MiniLM-L6-v2 and bge-small-en-v1.5 for a CPU-only English retrieval app",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data fetched on 2026-10-21T03:52:21Z (source URLs: [https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2](https://huggin",
+   "error": null
+  },
+  {
+   "id": "comparison-004",
+   "question": "Do bge-small-en-v1.5 and bge-base-en-v1.5 both have an MIT license?",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided data, yes, both `BAAI/bge-small-en-v1.5` and `BAAI/bge-base-en-v1.5` have an MIT license.",
+   "error": null
+  },
+  {
+   "id": "comparison-007",
+   "question": "Compare LaBSE and multilingual-e5-small on language support",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data fetched on 2026-10-21 (source urls: `https://huggingface.co/sentence-transformers/LaBSE` [1] and `https://huggingface.co/int",
+   "error": null
+  },
+  {
+   "id": "comparison-009",
+   "question": "Which of these embedding models allows commercial-friendly Apache-2.0 or MIT licensing: all-mpnet-base-v2, bge-m3, e5-base?",
+   "score": {
+    "routing": true,
+    "tool_called": false,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_model_details",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the Hugging Face data fetched on October 21, 2026, all three models feature commercial-friendly licenses:\n\n* **`sentence-transformers/all-mpnet-base-v2",
+   "error": null
+  },
+  {
+   "id": "comparison-010",
+   "question": "Compare bge-base and e5-base for English sentence-similarity tasks",
+   "score": {
+    "routing": false,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data fetched on 2026-10-21T03:54:34Z (source URLs: https://huggingface.co/BAAI/bge-base-en-v1.5 and https://huggingface.co/intflo",
+   "error": null
+  },
+  {
+   "id": "comparison-011",
+   "question": "Is multilingual-e5-small under 150M parameters, and what about paraphrase-multilingual-MiniLM-L12-v2?",
+   "score": {
+    "routing": false,
+    "tool_called": false,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_model_details",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the Hugging Face data retrieved from https://huggingface.co/intfloat/multilingual-e5-small (fetched at 2026-10-21T03:52:28Z) and https://huggingface.co",
+   "error": null
+  },
+  {
+   "id": "comparison-012",
+   "question": "Compare bge-m3 with multilingual-e5-base for multilingual retrieval",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    },
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the live Hugging Face data fetched on 2026-10-21 (note that downloads and likes are time-sensitive), here is a comparison between `BAAI/bge-m3` and `in",
+   "error": null
+  },
+  {
+   "id": "comparison-013",
+   "question": "Which of all-mpnet-base-v2 and bge-base-en-v1.5 is better suited to a 4GB GPU?",
+   "score": {
+    "routing": true,
+    "tool_called": false,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare"
+   ],
+   "tool_calls": [
+    {
+     "tool": "get_model_details",
+     "ok": true
+    },
+    {
+     "tool": "get_model_details",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided Hugging Face data, information regarding memory requirements or GPU compatibility for `sentence-transformers/all-mpnet-base-v2` and `BAAI/",
+   "error": null
+  },
+  {
+   "id": "comparison-015",
+   "question": "Does paraphrase-multilingual-MiniLM-L12-v2 support Italian, and how does it compare to LaBSE?",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare",
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_models",
+     "ok": true
+    },
+    {
+     "tool": "search_models",
+     "ok": true
+    },
+    {
+     "tool": "compare_resources",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    },
+    {
+     "tool": "get_card_section",
+     "ok": true
+    }
+   ],
+   "answer": "Based on live Hugging Face data fetched at 2026-10-21 (note that downloads and likes are time-sensitive):\n\n* **Italian Support:** Yes, **`sentence-transformers/",
+   "error": null
+  },
+  {
+   "id": "comparison-016",
+   "question": "Compare all-MiniLM-L6-v2 and paraphrase-multilingual-MiniLM-L12-v2: which is multilingual?",
+   "score": {
+    "routing": true,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "compare",
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the Live Hugging Face data (source: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2, fetched at 2026-10-21T03:52:17Z; and https://hugging",
+   "error": null
+  },
+  {
+   "id": "comparison-020",
+   "question": "Compare gte-small and multilingual-e5-small for English retrieval on CPU",
+   "score": {
+    "routing": false,
+    "tool_called": true,
+    "constraints_ok": false,
+    "constraint_keys_ok": false,
+    "approval_ok": null,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "compare_resources",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided data, here is a comparison between `thenlper/gte-small` and `intfloat/multilingual-e5-small`:\n\n* **Pipeline Tag & Library:** Both models s",
+   "error": null
+  },
+  {
+   "id": "benchmark-007",
+   "question": "Benchmark the two multilingual models e5-small and paraphrase-multilingual-MiniLM-L12-v2",
+   "score": {
+    "routing": false,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": false,
+    "refused": null,
+    "grounded": null
+   },
+   "routes": [
+    "discover"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_models",
+     "ok": true
+    },
+    {
+     "tool": "search_models",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided data, benchmark scores (such as accuracy, latency, or specific evaluation metrics) for **`intfloat/multilingual-e5-small`** and **`sentenc",
+   "error": null
+  },
+  {
+   "id": "unanswerable-005",
+   "question": "When will Transformers version 9 be released?",
+   "score": {
+    "routing": null,
+    "tool_called": null,
+    "constraints_ok": null,
+    "constraint_keys_ok": null,
+    "approval_ok": null,
+    "refused": false,
+    "grounded": null
+   },
+   "routes": [
+    "discover",
+    "learn"
+   ],
+   "tool_calls": [
+    {
+     "tool": "search_docs",
+     "ok": true
+    },
+    {
+     "tool": "search_docs",
+     "ok": true
+    }
+   ],
+   "answer": "Based on the provided documentation, information about the release date for Transformers version 9 is unknown.",
+   "error": null
+  }
+ ]
+}

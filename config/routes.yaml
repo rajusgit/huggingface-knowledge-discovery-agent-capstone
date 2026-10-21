@@ -17,6 +17,19 @@ routes:
     - How does beam search differ from greedy decoding?
     - What is a generation config and which options does it have?
     - Why does my model output repeat itself?
+    - How are files and branches organised inside a Hub repository?
+    - What are the size limits for files uploaded to the Hub?
+    - How do access tokens and permissions work on the Hub?
+    - What security scanning does the Hub run on uploaded files?
+    - How do I make a repository private or gated?
+    - What metadata goes in the YAML header of a README?
+    - How do organizations and collections work on the Hub?
+    - What does the datasets library do when it caches downloaded files?
+    - How do I log in to the Hub from the command line?
+    - How do I use huggingface_hub to list the files in a repository?
+    - How does the Trainer run evaluation during training?
+    - How does mixed precision training work in Transformers?
+    - What does the pipeline function return for a text classification task?
   discover:
     - Find embedding models for French
     - Search for text classification models on Hugging Face

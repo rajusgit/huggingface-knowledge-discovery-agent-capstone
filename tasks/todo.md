@@ -261,7 +261,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_tracing.py -q`; manual: LangSmith project shows nested spans
 **Dependencies:** T10 · **Files:** `observability/tracing.py`, `agents/graph.py`, `src/retrieval.py`, `tests/test_tracing.py` · **Scope:** M
 
-### - [ ] T25: CI + README + final report
+### - [x] T25 (CI verified on a clean macOS clone, not yet on GitHub's Linux runners; final report: observability/reports/final.md): CI + README + final report
 **Description:** GitHub Actions: ruff, pytest (mocked; no RDS/OpenRouter secrets), the `src/llm.py` isolation test, `npm run build`. README covers local run with `uv` + `npm`. Final report with measured scores against spec §7, confidence intervals, failure cases, limitations.
 **Acceptance criteria:**
 - [ ] CI green on a clean checkout

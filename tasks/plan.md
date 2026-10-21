@@ -116,7 +116,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 
 ### Phase 6: Observability + release
 - [x] T24: LangSmith `@traceable` spans, tags/metadata, OpenRouter cost
-- [ ] T25: CI (GitHub Actions) + README local run + final quality/cost report
+- [x] T25: CI (GitHub Actions) + README local run + final quality/cost report
 - [ ] T26: Railway deployment with API auth enabled
 
 **Checkpoint G — Complete:** all spec §7 acceptance criteria measured and reported (met or not, with numbers); Railway deploy rejects unauthenticated requests.
