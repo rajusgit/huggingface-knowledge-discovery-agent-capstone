@@ -42,6 +42,7 @@ router:
   encoder: "all-MiniLM-L6-v2"      # Semantic Router encoder; swappable
 
 huggingface:
+  base_url: "https://huggingface.co"
   api_timeout_seconds: 30
   max_retries: 3
   cache_ttl_seconds: 900           # 15 min (spec range 15-60 min)

@@ -47,6 +47,7 @@ class Router(BaseModel):
 
 
 class HuggingFace(BaseModel):
+    base_url: str = "https://huggingface.co"
     api_timeout_seconds: int = 30
     max_retries: int = 3
     cache_ttl_seconds: int = 900

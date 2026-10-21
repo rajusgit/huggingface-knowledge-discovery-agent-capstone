@@ -97,7 +97,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 
 ## Phase 2: Discover
 
-### - [ ] T9: HF client + FastMCP server
+### - [x] T9: HF client + FastMCP server
 **Description:** `tools/hf_client.py` wraps `huggingface_hub.HfApi` (`list_models`, `model_info`, `list_datasets`, `dataset_info`) with configurable timeout, **3 retries with backoff** on 429/5xx then a clear error, configurable TTL cache, input validation; adds `fetched_at` + `source_url` to every result. `tools/mcp_server.py` exposes `search_models`, `search_embedding_models`, `get_model_details`, `search_datasets`, `get_dataset_details`, `search_docs` over stdio (course: hr-assist `server.py`).
 **Acceptance criteria:**
 - [ ] Every result has `fetched_at`, `revision` (when available), `source_url`; missing fields stay null and are never invented
