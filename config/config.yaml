@@ -9,6 +9,7 @@ llm:
     model: "google/gemini-3.5-flash-lite"
     timeout_seconds: 60
     max_retries: 3
+    retry_backoff_seconds: 1.0
     cache_enabled: true            # exact-match, temperature=0 only
 
 embedding:

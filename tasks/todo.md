@@ -35,7 +35,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run python -m src.db --init` twice; manual: `\dt hf_discovery.*` in psql
 **Dependencies:** T2 · **Files:** `src/schema.sql`, `src/db.py` · **Scope:** S
 
-### - [ ] T4: `src/llm.py` OpenRouter client
+### - [x] T4: `src/llm.py` OpenRouter client
 **Description:** `complete(messages, tools=None, **kw) -> dict` and `stream(...)` using `openai.OpenAI(base_url=OpenRouter)`; reads the `llm` block of config.yaml itself (model, timeout, retries, cache switch); **3 retries with backoff** on 429/5xx/timeouts, then raises a clear error; exact-match in-process cache for `temperature=0` calls (course: 16_advanced_ai_eng). Returns `{content, tool_calls, usage, model, latency_ms}`. This is the **only** LLM entry point in the project (D2a).
 **Acceptance criteria:**
 - [ ] Module imports only stdlib, `yaml`, `openai` (test parses its AST and fails on any `src.` import)
