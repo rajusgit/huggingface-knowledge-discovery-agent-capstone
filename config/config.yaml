@@ -18,10 +18,10 @@ embedding:
   device: "cpu"                    # encoder + reranker device. Explicit on purpose: auto-selected Apple MPS crashed under threads
   dim: 384
 
-database:
+database:                          # host / user / name are overridden by DB_HOST / DB_USER / DB_NAME in .env
   host: "localhost"
   port: 5432
-  name: "tickerpulse"
+  name: "postgres"
   user: "postgres"
   sslmode: "require"
   schema: "hf_discovery"

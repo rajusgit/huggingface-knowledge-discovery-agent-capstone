@@ -104,3 +104,20 @@ def test_main_binds_to_railways_host_and_port(monkeypatch):
     monkeypatch.delenv("PORT")
     monkeypatch.delenv("HOST")
     assert main.bind() == (config.settings.api.host, config.settings.api.port)
+
+
+def test_database_location_comes_from_the_environment_not_the_tracked_config(monkeypatch):
+    monkeypatch.setenv("DB_HOST", "db.internal.example")
+    monkeypatch.setenv("DB_USER", "svc_user")
+    monkeypatch.setenv("DB_NAME", "appdb")
+    config.get_settings.cache_clear()
+    d = config.get_settings().database
+    assert (d.host, d.user, d.name) == ("db.internal.example", "svc_user", "appdb")
+    assert "host=db.internal.example" in config.get_settings().dsn and "user=svc_user" in config.get_settings().dsn
+
+
+def test_tracked_files_contain_no_live_infrastructure_identifiers():
+    import subprocess
+    out = subprocess.run(["git", "grep", "-nE", "rds\\.amazonaws\\.com|postgres", "--", ".", ":!uv.lock", ":!tests/test_auth.py"],
+                         cwd=config.ROOT, capture_output=True, text=True).stdout
+    assert out.strip() == "", out

@@ -173,15 +173,21 @@ class Settings(BaseSettings):
 
 
 def load_yaml(path: Path = CONFIG_PATH) -> dict:
-    """config.yaml, with the few deployment overrides that come from env vars (Railway): they let a host
-    switch auth on and set the UI origin without editing the file."""
+    """config.yaml plus deployment overrides from the environment or .env (Railway / local): auth switch,
+    UI origin, and where the database lives (kept out of tracked files)."""
     import os
 
+    from dotenv import dotenv_values
+
+    env = {**dotenv_values(ROOT / ".env"), **os.environ}
     data = yaml.safe_load(path.read_text())
-    if os.environ.get("API_AUTH_ENABLED"):
-        data["api"]["auth_enabled"] = os.environ["API_AUTH_ENABLED"].strip().lower() in ("1", "true", "yes", "on")
-    if os.environ.get("CORS_ORIGINS"):
-        data["api"]["cors_origins"] = [o.strip() for o in os.environ["CORS_ORIGINS"].split(",") if o.strip()]
+    if env.get("API_AUTH_ENABLED"):
+        data["api"]["auth_enabled"] = env["API_AUTH_ENABLED"].strip().lower() in ("1", "true", "yes", "on")
+    for var, key in (("DB_HOST", "host"), ("DB_USER", "user"), ("DB_NAME", "name")):
+        if env.get(var):
+            data["database"][key] = env[var]
+    if env.get("CORS_ORIGINS"):
+        data["api"]["cors_origins"] = [o.strip() for o in env["CORS_ORIGINS"].split(",") if o.strip()]
     return data
 
 

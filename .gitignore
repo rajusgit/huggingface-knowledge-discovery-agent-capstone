@@ -1,7 +1,36 @@
+# secrets and local configuration (never commit; .env.example lists the variable names)
 .env
+.env.*
+!.env.example
+
+# Python
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node / UI build output
 node_modules/
 ui/dist/
+*.tsbuildinfo
+
+# local data, logs and scratch
+data/
+*.log
+tmp/
+scratch/
+
+# editor / OS / tool state
 .DS_Store
+.idea/
+.vscode/
+.claude/
+graphify-out/
+
+# a personal script that fetches model metadata (downloads/likes); the spec says not to store those
+standalone-scripts/huggingface_seeding_script.py

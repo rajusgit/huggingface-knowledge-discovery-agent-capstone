@@ -133,7 +133,7 @@ embedding:
 database:
   host: "localhost"
   port: 5432
-  name: "tickerpulse"
+  name: "postgres"
   user: "postgres"
   sslmode: "require"
   schema: "hf_discovery"
