@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -39,6 +40,22 @@ def dataset_path(dataset_id: str) -> Path:
     if not path.is_file():
         raise BenchmarkRefused(f"unknown benchmark dataset: {dataset_id!r}")
     return path
+
+
+def list_datasets() -> list[str]:
+    d = config.ROOT / config.settings.benchmarks.dataset_dir
+    return sorted(p.stem for p in d.glob("*.json") if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", p.stem)) if d.is_dir() else []
+
+
+def jsonable(rec: dict) -> dict:
+    """DB record -> plain JSON types (uuid/datetime to str)."""
+    return {k: (str(v) if isinstance(v, uuid.UUID) else v.isoformat() if hasattr(v, "isoformat") else v)
+            for k, v in rec.items()}
+
+
+def start_in_background(job: uuid.UUID) -> None:
+    # ponytail: in-process daemon thread; a job queue (RQ/Celery) if jobs must survive restarts
+    threading.Thread(target=run_job, args=(job,), daemon=True, name=f"benchmark-{job}").start()
 
 
 def load_dataset(path: Path) -> dict:

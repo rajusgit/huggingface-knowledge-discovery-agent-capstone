@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { safeUrl, splitCitations, streamChat, threadIdFor, type Citation, type LiveSource } from '../api'
+import { resumeChat, safeUrl, splitCitations, streamChat, threadIdFor, type Approval, type BenchmarkRecord, type ChatEvent, type Citation, type LiveSource } from '../api'
+import Benchmarks from './Benchmarks'
 import Citations from './Citations'
 
 interface Turn {
@@ -7,6 +8,9 @@ interface Turn {
   answer: string
   citations: Citation[]
   live: LiveSource[]
+  bench: BenchmarkRecord[]
+  approval?: Approval & { threadId: string }
+  status?: string
   error?: string
   done: boolean
 }
@@ -17,7 +21,8 @@ export default function Chat() {
   const [active, setActive] = useState<number | null>(null)
   const [memory, setMemory] = useState(false)
   const stableThread = useRef(crypto.randomUUID())
-  const busy = turns.length > 0 && !turns[turns.length - 1].done
+  const last = turns[turns.length - 1]
+  const busy = turns.length > 0 && !last.done && !last.approval
 
   const patchLast = (f: (t: Turn) => Turn) =>
     setTurns((ts) => ts.map((t, i) => (i === ts.length - 1 ? f(t) : t)))
@@ -27,17 +32,31 @@ export default function Chat() {
     if (!question || busy) return
     setInput('')
     setActive(null)
-    setTurns((ts) => [...ts, { question, answer: '', citations: [], live: [], done: false }])
+    setTurns((ts) => [...ts, { question, answer: '', citations: [], live: [], bench: [], done: false }])
+    await consume(streamChat(question, threadIdFor(memory, stableThread.current), memory), stableThread.current)
+  }
+
+  async function consume(events: AsyncGenerator<ChatEvent>, thread: string) {
     try {
-      for await (const e of streamChat(question, threadIdFor(memory, stableThread.current), memory)) {
+      for await (const e of events) {
         if (e.type === 'token') patchLast((t) => ({ ...t, answer: t.answer + e.text }))
-        else if (e.type === 'final') patchLast((t) => ({ ...t, citations: e.citations, live: e.live_sources, done: true }))
+        else if (e.type === 'benchmark_status') patchLast((t) => ({ ...t, status: e.jobs.map((j) => `${j.model_id}: ${j.status}`).join(' · ') }))
+        else if (e.type === 'approval_required') patchLast((t) => ({ ...t, approval: { ...e, threadId: thread } }))
+        else if (e.type === 'final') patchLast((t) => ({ ...t, citations: e.citations, live: e.live_sources, bench: e.benchmarks, status: undefined, done: true }))
         else if (e.type === 'error') patchLast((t) => ({ ...t, error: e.message, done: true }))
       }
     } catch (err) {
       patchLast((t) => ({ ...t, error: err instanceof Error ? err.message : 'Request failed', done: true }))
     }
-    patchLast((t) => ({ ...t, done: true }))
+    patchLast((t) => (t.approval ? { ...t, done: false } : { ...t, done: true }))
+  }
+
+  async function decide(approved: boolean) {
+    const t = turns[turns.length - 1]
+    if (!t?.approval) return
+    const thread = t.approval.threadId
+    patchLast((x) => ({ ...x, approval: undefined, done: false, status: approved ? 'Starting benchmark…' : undefined }))
+    await consume(resumeChat(thread, approved, memory), thread)
   }
 
   return (
@@ -70,6 +89,22 @@ export default function Chat() {
               )}
               {!t.done && <span className="animate-pulse">▍</span>}
             </p>
+            {t.status && <p className="mt-2 text-sm text-slate-600" role="status">{t.status}</p>}
+            {t.approval && (
+              <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm" role="alertdialog" aria-label="Approve benchmark">
+                <p className="font-medium">Approve running a benchmark?</p>
+                <ul className="mt-1 list-disc pl-5">
+                  <li>Models: {t.approval.models.join(', ')}</li>
+                  <li>Dataset: {t.approval.dataset} (seed {t.approval.seed})</li>
+                  <li>Limits: {t.approval.limits.max_runtime_seconds}s runtime, {t.approval.limits.max_memory_mb} MB memory, sandboxed, no remote code</li>
+                </ul>
+                <div className="mt-2 flex gap-2">
+                  <button className="rounded bg-blue-700 px-3 py-1 text-white" onClick={() => void decide(true)}>Approve</button>
+                  <button className="rounded border border-slate-300 bg-white px-3 py-1" onClick={() => void decide(false)}>Reject</button>
+                </div>
+              </div>
+            )}
+            <Benchmarks records={t.bench} />
             {t.error && <p role="alert" className="mt-2 text-red-700">{t.error}</p>}
             <Citations citations={t.citations} active={active} />
             {t.live.length > 0 && (

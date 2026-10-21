@@ -64,6 +64,8 @@ benchmarks:
   dataset_dir: "data/benchmarks"   # <dataset_id>.json files (written by the dataset fetch script)
   ks: [1, 5, 10]
   default_seed: 0
+  poll_interval_seconds: 2.0       # how often the agent checks job status while waiting
+  max_models_per_benchmark: 3
   max_corpus_docs: 5000
   max_queries: 1000
   allowed_models:                  # only these may be benchmarked (no arbitrary repos)

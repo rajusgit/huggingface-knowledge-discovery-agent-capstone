@@ -66,7 +66,7 @@ def benchmark_embedding_model(model_id: str, dataset_id: str, seed: int | None =
     subprocess. Returns measured Recall@k, MRR, nDCG, latency, hardware and versions.
     Restricted: requires explicit human approval before it is called."""
     rec = benchmarks.benchmark_embedding_model(model_id, dataset_id, seed)
-    return {k: (str(v) if k == "job_id" else v.isoformat() if hasattr(v, "isoformat") else v) for k, v in rec.items()}
+    return benchmarks.jsonable(rec)
 
 
 @mcp.tool()

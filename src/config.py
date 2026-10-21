@@ -71,6 +71,8 @@ class Benchmarks(BaseModel):
     dataset_dir: str = "data/benchmarks"
     ks: list[int] = [1, 5, 10]
     default_seed: int = 0
+    poll_interval_seconds: float = 2.0
+    max_models_per_benchmark: int = 3
     max_corpus_docs: int = 5000
     max_queries: int = 1000
     allowed_models: list[str] = []

@@ -86,3 +86,38 @@ describe('buildConstraints', () => {
     expect(buildConstraints({ licenses: '', maxParamsM: 'abc', language: 'en', task: '' })).toEqual({ language: 'en' })
   })
 })
+
+import { benchmarkRows, fmtMetric, type BenchmarkRecord } from './api'
+
+const rec = (over: Partial<BenchmarkRecord> = {}): BenchmarkRecord => ({
+  job_id: 'j1', model_id: 'o/m', model_revision: '1110a243fdf4706b3f48f1d95db1a4f5529b4d41', dataset_id: 'd', dataset_revision: 'fx1',
+  status: 'succeeded', seed: 0, hardware: { cpu_count: 8, platform: 'macOS', torch: '2.0', sentence_transformers: '6.1.0' },
+  metrics: { 'recall@1': 0.5, 'recall@5': 0.9, 'recall@10': 1, 'mrr@10': 0.8, 'ndcg@10': 0.85, n_docs: 12, n_queries: 6,
+    peak_rss_mb: 543, timing: { docs_per_second: 448.14, query_latency_ms: 5.343 } }, error: null, ...over,
+})
+
+describe('fmtMetric', () => {
+  it('formats scores to 3 decimals and handles missing values', () => {
+    expect(fmtMetric(0.91234)).toBe('0.912')
+    expect(fmtMetric(1)).toBe('1.000')
+    expect(fmtMetric(undefined)).toBe('—')
+    expect(fmtMetric(null)).toBe('—')
+  })
+})
+
+describe('benchmarkRows', () => {
+  it('lists quality, speed and provenance rows for a successful run', () => {
+    const rows = Object.fromEntries(benchmarkRows(rec()).map((r) => [r.label, r.value]))
+    expect(rows['Recall@5']).toBe('0.900')
+    expect(rows['nDCG@10']).toBe('0.850')
+    expect(rows['Docs / second']).toBe('448.1')
+    expect(rows['Model revision']).toBe('1110a243')
+    expect(rows['Dataset']).toBe('d @ fx1')
+    expect(rows['Hardware']).toContain('8 CPU')
+  })
+  it('shows only status and error for a failed run', () => {
+    const rows = benchmarkRows(rec({ status: 'timeout', metrics: null, error: 'exceeded the 600s runtime limit' }))
+    expect(rows.map((r) => r.label)).toEqual(['Status', 'Error'])
+    expect(rows[1].value).toContain('600s')
+  })
+})

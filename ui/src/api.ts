@@ -14,8 +14,35 @@ export interface LiveSource {
   fetched_at: string | null
 }
 
+export interface BenchmarkRecord {
+  job_id: string
+  model_id: string
+  model_revision: string | null
+  dataset_id: string
+  dataset_revision: string | null
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'timeout'
+  seed: number | null
+  hardware: Record<string, string | number> | null
+  metrics: {
+    'recall@1'?: number; 'recall@5'?: number; 'recall@10'?: number; 'mrr@10'?: number; 'ndcg@10'?: number
+    n_docs?: number; n_queries?: number; peak_rss_mb?: number | null
+    timing?: { docs_per_second?: number | null; query_latency_ms?: number | null }
+  } | null
+  error: string | null
+}
+
+export interface Approval {
+  kind: string
+  models: string[]
+  dataset: string
+  seed: number
+  limits: { max_runtime_seconds: number; max_memory_mb: number }
+}
+
 export type ChatEvent =
   | { type: 'node'; name: string }
+  | ({ type: 'approval_required' } & Approval)
+  | { type: 'benchmark_status'; jobs: { job_id: string; model_id: string; status: string }[] }
   | { type: 'token'; text: string }
   | {
       type: 'final'
@@ -24,6 +51,7 @@ export type ChatEvent =
       citations: Citation[]
       invalid_citations: number[]
       live_sources: LiveSource[]
+      benchmarks: BenchmarkRecord[]
       guard_events: unknown[]
     }
   | { type: 'error'; message: string }
@@ -124,6 +152,33 @@ export async function searchHub(kind: HubKind, f: SearchFilters, signal?: AbortS
   return (await res.json()) as HubResponse
 }
 
+export const fmtMetric = (v: number | null | undefined): string => (v === null || v === undefined ? '—' : v.toFixed(3))
+
+/** Table rows (label/value) for one benchmark run: quality, speed, then provenance. */
+export function benchmarkRows(r: BenchmarkRecord): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [{ label: 'Status', value: r.status }]
+  if (r.error) rows.push({ label: 'Error', value: r.error })
+  const m = r.metrics
+  if (!m) return rows
+  const hw = r.hardware ?? {}
+  return [
+    ...rows,
+    { label: 'Recall@1', value: fmtMetric(m['recall@1']) },
+    { label: 'Recall@5', value: fmtMetric(m['recall@5']) },
+    { label: 'Recall@10', value: fmtMetric(m['recall@10']) },
+    { label: 'MRR@10', value: fmtMetric(m['mrr@10']) },
+    { label: 'nDCG@10', value: fmtMetric(m['ndcg@10']) },
+    { label: 'Docs / second', value: m.timing?.docs_per_second != null ? m.timing.docs_per_second.toFixed(1) : '—' },
+    { label: 'Query latency (ms)', value: m.timing?.query_latency_ms != null ? m.timing.query_latency_ms.toFixed(1) : '—' },
+    { label: 'Peak memory (MB)', value: m.peak_rss_mb != null ? String(Math.round(m.peak_rss_mb)) : '—' },
+    { label: 'Corpus / queries', value: `${m.n_docs ?? '—'} docs / ${m.n_queries ?? '—'} queries` },
+    { label: 'Model revision', value: (r.model_revision ?? '—').slice(0, 8) },
+    { label: 'Dataset', value: `${r.dataset_id} @ ${r.dataset_revision ?? '—'}` },
+    { label: 'Seed', value: String(r.seed ?? '—') },
+    { label: 'Hardware', value: `${hw.cpu_count ?? '?'} CPU · ${hw.platform ?? '?'} · torch ${hw.torch ?? '?'} · sentence-transformers ${hw.sentence_transformers ?? '?'}` },
+  ]
+}
+
 export function parseIds(text: string): string[] {
   return [...new Set(text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean))]
 }
@@ -192,18 +247,7 @@ export async function compareResources(
   return (await res.json()) as CompareResponse
 }
 
-export async function* streamChat(
-  message: string,
-  threadId: string,
-  memory: boolean,
-  signal?: AbortSignal,
-): AsyncGenerator<ChatEvent> {
-  const res = await fetch(`${API_URL}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, thread_id: threadId, pipeline_variant: 'default', memory }),
-    signal,
-  })
+async function* readEvents(res: Response): AsyncGenerator<ChatEvent> {
   if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`)
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
@@ -215,4 +259,31 @@ export async function* streamChat(
     rest = parsed.rest
     for (const e of parsed.events) yield e
   }
+}
+
+const post = (path: string, body: unknown, signal?: AbortSignal) =>
+  fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
+
+export async function* streamChat(
+  message: string,
+  threadId: string,
+  memory: boolean,
+  signal?: AbortSignal,
+): AsyncGenerator<ChatEvent> {
+  yield* readEvents(await post('/api/chat', { message, thread_id: threadId, pipeline_variant: 'default', memory }, signal))
+}
+
+/** Answer a pending approval (e.g. run the proposed benchmark). Uses the same thread as the request. */
+export async function* resumeChat(
+  threadId: string,
+  approved: boolean,
+  memory: boolean,
+  signal?: AbortSignal,
+): AsyncGenerator<ChatEvent> {
+  yield* readEvents(await post('/api/chat/resume', { thread_id: threadId, approved, memory }, signal))
 }

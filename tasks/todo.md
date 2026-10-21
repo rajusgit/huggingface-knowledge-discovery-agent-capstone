@@ -155,7 +155,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run pytest tests/test_benchmarks.py -q` (tiny fixture); manual: `uv run python -m tools.benchmarks --model sentence-transformers/all-MiniLM-L6-v2`
 **Dependencies:** T3, T9; real dataset blocked on developer script (D12) · **Files:** `tools/benchmarks.py`, `tools/mcp_server.py`, `tests/test_benchmarks.py`, `tests/fixtures/bench_tiny.json` · **Scope:** M
 
-### - [ ] T15: Benchmark approval (human-in-the-loop, required) + API + UI
+### - [x] T15 (browser check manual; API flow verified live with fixture dataset): Benchmark approval (human-in-the-loop, required) + API + UI
 **Description:** Human approval is a required deliverable (D3), hand-built because `HumanInTheLoopMiddleware` isn't available with the raw SDK. Agent nodes `authorize_benchmark` (LangGraph `interrupt()` / `Command(resume=…)`, course: ai_orchestration_langgraph) → `enqueue_job` (in-process background task) → `poll_results`. `POST /api/benchmarks`, `GET /api/benchmarks/{job_id}`. UI approval prompt and results table with **measured vs published** labels.
 **Acceptance criteria:**
 - [ ] No benchmark runs without explicit approval; reject → graph ends cleanly

@@ -3,7 +3,9 @@
 POST /api/chat streams server-sent events:
   {"type":"node","name":...}*  progress as each graph node finishes
   {"type":"token","text":...}* answer tokens
-  {"type":"final", answer, routes, citations, invalid_citations, live_sources, tool_results, guard_events}
+  {"type":"benchmark_status",...}* while approved benchmark jobs run
+  {"type":"approval_required", kind, models, dataset, seed, limits}  stream ends; resume via POST /api/chat/resume
+  {"type":"final", answer, routes, citations, invalid_citations, live_sources, tool_results, benchmarks, guard_events}
   {"type":"error","message":...} if the turn fails
 GET /api/models/search, /api/datasets/search: filterable live Hugging Face discovery.
 """
@@ -21,7 +23,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from src import config
-from tools import compare, hf_client
+from tools import benchmarks, compare, hf_client
 
 log = logging.getLogger("api")
 _cfg = config.settings
@@ -85,19 +87,28 @@ def _persist(thread_id: str, question: str, final: dict, latency_ms: int) -> Non
         )
 
 
-async def _chat_events(agent, req: ChatRequest):
+async def _events(stream, *, memory: bool, thread_id: str, question: str | None):
     start = time.perf_counter()
     state: dict = {}
-    streamed = False
+    streamed = awaiting = False
     try:
-        async for mode, payload in agent.astream(req.message, req.thread_id, memory=req.memory):
-            if mode == "custom" and payload.get("type") == "token":
-                streamed = True
+        async for mode, payload in stream:
+            if mode == "interrupt":  # human approval needed: tell the client...
+                awaiting = True
+                yield _sse({"type": "approval_required", "kind": payload.get("type"),
+                            **{k: v for k, v in payload.items() if k != "type"}})
+                continue  # ...but keep draining: stopping here would cancel the checkpoint write
+            if mode == "custom" and payload.get("type") in ("token", "benchmark_status"):
+                streamed = streamed or payload["type"] == "token"
                 yield _sse(payload)
             elif mode == "updates":
                 for node, update in payload.items():
+                    if node.startswith("__"):  # LangGraph-internal pseudo-nodes
+                        continue
                     state.update(update or {})
                     yield _sse({"type": "node", "name": node})
+        if awaiting:  # paused for approval; the client resumes via /api/chat/resume
+            return
         answer = state.get("answer") or ""
         if not streamed and answer:  # refusals are produced without streaming
             yield _sse({"type": "token", "text": answer})
@@ -109,11 +120,13 @@ async def _chat_events(agent, req: ChatRequest):
             "invalid_citations": state.get("invalid_citations", []),
             "live_sources": state.get("live_sources", []),
             "tool_results": state.get("live", []),
+            "benchmarks": state.get("benchmarks", []),
             "guard_events": [],
         }
-        if req.memory:  # nothing is stored for memory-off turns
+        # ponytail: resumed (approval) turns aren't written to `messages`; the question isn't known here
+        if memory and question is not None:  # nothing is stored for memory-off turns
             try:
-                await asyncio.to_thread(_persist, req.thread_id, req.message, final,
+                await asyncio.to_thread(_persist, thread_id, question, final,
                                         int((time.perf_counter() - start) * 1000))
             except Exception:
                 log.exception("persisting chat turn failed")
@@ -125,7 +138,25 @@ async def _chat_events(agent, req: ChatRequest):
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
-    return StreamingResponse(_chat_events(request.app.state.agent, req), media_type="text/event-stream")
+    stream = request.app.state.agent.astream(req.message, req.thread_id, memory=req.memory)
+    return StreamingResponse(
+        _events(stream, memory=req.memory, thread_id=req.thread_id, question=req.message),
+        media_type="text/event-stream")
+
+
+class ResumeRequest(BaseModel):
+    thread_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    approved: bool
+    memory: bool = False
+
+
+@app.post("/api/chat/resume")
+async def resume(req: ResumeRequest, request: Request) -> StreamingResponse:
+    """Answer a pending human-approval request (e.g. run the proposed benchmark)."""
+    stream = request.app.state.agent.aresume_stream(req.thread_id, req.approved, memory=req.memory)
+    return StreamingResponse(
+        _events(stream, memory=req.memory, thread_id=req.thread_id, question=None),
+        media_type="text/event-stream")
 
 
 def _discover(fn, *args, **kw) -> dict:
@@ -162,3 +193,38 @@ class CompareRequest(BaseModel):
 @app.post("/api/compare")
 def compare_resources(req: CompareRequest) -> dict:
     return _discover(compare.compare_resources, req.ids, kind=req.kind, constraints=req.constraints)
+
+
+def _start_in_background(job) -> None:
+    benchmarks.start_in_background(job)
+
+
+class BenchmarkRequest(BaseModel):
+    model_ids: list[str] = Field(min_length=1, max_length=_cfg.benchmarks.max_models_per_benchmark)
+    dataset_id: str
+    seed: int | None = None
+
+
+@app.post("/api/benchmarks")
+def start_benchmarks(req: BenchmarkRequest) -> dict:
+    """Start allowlisted benchmark jobs (human-initiated). Returns job ids to poll."""
+    for m in req.model_ids:
+        if m not in _cfg.benchmarks.allowed_models:
+            raise HTTPException(422, f"model {m!r} is not on the benchmark allowlist")
+    jobs = []
+    try:
+        for m in req.model_ids:
+            jid = benchmarks.create_job(m, req.dataset_id, req.seed)
+            _start_in_background(jid)
+            jobs.append({"job_id": str(jid), "model_id": m, "status": "queued"})
+    except benchmarks.BenchmarkRefused as e:
+        raise HTTPException(422, str(e))
+    return {"jobs": jobs}
+
+
+@app.get("/api/benchmarks/{job_id}")
+def get_benchmark(job_id: uuid.UUID) -> dict:
+    rec = benchmarks.get_job(job_id)
+    if rec is None:
+        raise HTTPException(404, "benchmark job not found")
+    return benchmarks.jsonable(rec)
