@@ -55,7 +55,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 
 ## Phase 1: Thin Learn slice
 
-### - [ ] T5: Ingest one approved doc → active run
+### - [x] T5: Ingest one approved doc → active run
 **Description:** Minimal `src/ingest.py` + `src/chunking.py` (hierarchical only): register one source in `sources`, fetch at a pinned revision, parse with Docling, `HierarchicalChunker` with breadcrumb (course: evals_with_ragas `convert_chunk`), embed with `src/embed.py`, insert under a new `ingest_runs` row, publish as `active`. CLI in `standalone-scripts/ingest.py`.
 **Acceptance criteria:**
 - [ ] Chunks carry `source_url`, `heading_path`, `revision`, `license`, `content_hash`, deterministic `chunk_id`

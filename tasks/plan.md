@@ -76,7 +76,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 **Checkpoint A — Foundation:** config loads, schema exists on RDS, one live OpenRouter call works, tests pass.
 
 ### Phase 1: Thin Learn slice (end-to-end)
-- [ ] T5: Ingest one approved doc page → hierarchical chunks → active run
+- [x] T5: Ingest one approved doc page → hierarchical chunks → active run
 - [ ] T6: Dense retrieval + cited answer CLI
 - [ ] T7: FastAPI `/api/chat` (RAG-only, SSE streaming)
 - [ ] T8: React chat shell with citation drawer

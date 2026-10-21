@@ -54,3 +54,11 @@ benchmarks:
 api:
   auth_enabled: false              # true on Railway; key comes from env API_KEY
   cors_origins: ["http://localhost:5173"]
+
+ingest:
+  sources_file: "config/sources.yaml"
+  github_api: "https://api.github.com"
+  raw_base: "https://raw.githubusercontent.com"
+  fetch_timeout_seconds: 30
+  fetch_max_retries: 3
+  embed_batch_size: 64

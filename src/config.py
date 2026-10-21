@@ -58,6 +58,15 @@ class Benchmarks(BaseModel):
     max_memory_mb: int = 4096
 
 
+class Ingest(BaseModel):
+    sources_file: str
+    github_api: str
+    raw_base: str
+    fetch_timeout_seconds: int = 30
+    fetch_max_retries: int = 3
+    embed_batch_size: int = 64
+
+
 class Api(BaseModel):
     auth_enabled: bool = False
     cors_origins: list[str] = []
@@ -82,6 +91,7 @@ class Settings(BaseSettings):
     huggingface: HuggingFace
     benchmarks: Benchmarks
     api: Api
+    ingest: Ingest
 
     @property
     def dsn(self) -> str:

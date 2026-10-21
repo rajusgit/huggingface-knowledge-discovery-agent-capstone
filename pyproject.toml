@@ -10,6 +10,8 @@ dependencies = [
     "psycopg-pool>=3.2",
     "pgvector>=0.3",
     "openai>=3.35.1",
+    "docling>=2.141.0",
+    "sentence-transformers>=6.1.0",
 ]
 
 [dependency-groups]

@@ -1,0 +1,15 @@
+# Seed-corpus registry. Each entry is one docs page fetched from a GitHub repo
+# at a pinned commit. ref: "latest" resolves to the latest release tag at ingest time.
+# permitted_use: pending_review | index_text | reference_only | rejected
+sources:
+  - source_id: hf-transformers-llm-tutorial
+    repo: huggingface/transformers
+    path: docs/source/en/llm_tutorial.md
+    ref: latest
+    canonical_url: https://huggingface.co/docs/transformers/en/llm_tutorial
+    owner: Hugging Face
+    license: Apache-2.0          # repo LICENSE, verified 2026-10-20
+    permitted_use: index_text
+    store_text: true
+    category: transformers
+    attribution: "Hugging Face Transformers documentation, Apache-2.0"
