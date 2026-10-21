@@ -1,8 +1,55 @@
-# ─── LLM Provider ────────────────────────────────────────────────────────────
+# Non-secret settings only. Secrets (OPENROUTER_API_KEY, TICKERPULSE_DB_PASSWORD,
+# HF_TOKEN, LANGSMITH_API_KEY, API_KEY) live in .env -- see .env.example.
+
 llm:
-  provider: "localllm"                     # Main provider (can be overridden per tier)
-  provider_overrides: {}                   # Override provider for specific tiers
+  provider: "openrouter"
   openrouter:
-    base_url: "https://openrouter.ai/api/v1"     # OpenRouter (used by screener_batch_run.py); any OpenAI-compatible server works
+    base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
-      analyst:           "google/gemini-3.5-flash-lite"
+    model: "google/gemini-3.5-flash-lite"
+    timeout_seconds: 60
+    max_retries: 3
+    cache_enabled: true            # exact-match, temperature=0 only
+
+embedding:
+  model: "all-MiniLM-L6-v2"
+  dim: 384
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "tickerpulse"
+  user: "postgres"
+  sslmode: "require"
+  schema: "hf_discovery"
+  pool_size: 5
+
+retrieval:
+  mode: "dense"                    # dense | hybrid
+  k: 10
+  top_n: 3
+  score_threshold: 0.30
+  reranker: "cross-encoder/ms-marco-MiniLM-L-6-v2"   # null disables reranking
+  chunker: "hierarchical"          # hierarchical | fixed50 | recursive200 | hybrid128
+  fixed_chunk_words: 50
+  recursive_chunk_size: 200
+  recursive_chunk_overlap: 20
+  hybrid_max_tokens: 128
+  rrf_k: 60
+
+router:
+  encoder: "all-MiniLM-L6-v2"      # Semantic Router encoder; swappable
+
+huggingface:
+  api_timeout_seconds: 30
+  max_retries: 3
+  cache_ttl_seconds: 900           # 15 min (spec range 15-60 min)
+  max_results: 50
+
+benchmarks:
+  max_runtime_seconds: 600
+  max_memory_mb: 4096
+
+api:
+  auth_enabled: false              # true on Railway; key comes from env API_KEY
+  cors_origins: ["http://localhost:5173"]

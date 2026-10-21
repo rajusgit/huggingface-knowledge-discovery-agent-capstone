@@ -14,7 +14,7 @@ SCHEMA_SQL = Path(__file__).resolve().parent / "schema.sql"
 # Pooled because every Slack event opens a connection from a laptop to RDS over
 # the internet -- a TLS handshake per message is latency we can just not pay.
 pool = ConnectionPool(
-    settings.dsn, min_size=1, max_size=settings.db_pool_size, open=False,
+    settings.dsn, min_size=1, max_size=settings.database.pool_size, open=False,
     kwargs={"options": "-c search_path=slackbot,public"},
 )
 

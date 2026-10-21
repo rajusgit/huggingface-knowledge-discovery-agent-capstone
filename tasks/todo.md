@@ -16,7 +16,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `grep -nE "Redis|Docker|LiteLLM|Qdrant|Middleware" specs/*architecture.md` shows only "replaced/removed" notes
 **Dependencies:** None · **Files:** `specs/HuggingFace_Knowledge_Discovery Agent_technical_architecture.md` · **Scope:** XS
 
-### - [ ] T2: Project skeleton + config
+### - [x] T2: Project skeleton + config
 **Description:** `pyproject.toml` (uv, Python ≥3.11) with root packages `src`, `agents`, `tools`, `observability`; rewrite `config/config.yaml` to the spec §3.2 shape **plus every tunable (D3a) with the defaults in plan.md** (`max_retries: 3`, timeouts, TTLs, benchmark limits, `router.encoder`, reranker, k/top_n, chunk sizes, `api.auth_enabled: false`); rewrite `src/config.py` (YAML + `.env` merge, drop Slack/Groq fields); add `.env.example`, `.gitignore`.
 **Acceptance criteria:**
 - [ ] `from src.config import settings` exposes `db`, `embedding`, `retrieval`, `router`, `huggingface`, `benchmarks`, `api` sections and the DSN

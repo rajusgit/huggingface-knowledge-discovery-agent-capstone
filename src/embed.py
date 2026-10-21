@@ -1,4 +1,4 @@
-"""Embedding via all-MiniLM-L6-v2. Loaded once and cached; both ingest and query use it
+"""Embedding via the configured model (embedding.model). Loaded once and cached; both ingest and query use it
 so their vectors can never drift apart.
 """
 import os
@@ -7,13 +7,15 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")  # model is cached locally; skip th
 
 from sentence_transformers import SentenceTransformer
 
+from src.config import settings
+
 _model = None
 
 
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        _model = SentenceTransformer(settings.embedding.model)
     return _model
 
 
