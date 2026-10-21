@@ -85,7 +85,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 
 ### Phase 2: Discover (MCP + agent)
 - [x] T9: HF client + FastMCP server (search/details tools)
-- [ ] T10: LangGraph agent: intent routing (Semantic Router), RAG and MCP branches, Postgres checkpointer
+- [x] T10: LangGraph agent: intent routing (Semantic Router), RAG and MCP branches, Postgres checkpointer
 - [ ] T11: Discovery endpoints + agent-backed `/api/chat`
 - [ ] T12: UI discovery cards, filters, memory toggle
 

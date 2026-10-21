@@ -39,15 +39,15 @@ export function safeUrl(url: string): string | null {
 
 export type Piece = { text: string } | { n: number }
 
-/** Split answer text into plain text and [n] citation markers. */
+/** Split answer text into plain text and citation markers; [1, 6] becomes two markers. */
 export function splitCitations(text: string): Piece[] {
-  return text
-    .split(/(\[\d+\])/)
-    .filter(Boolean)
-    .map((s) => {
-      const m = /^\[(\d+)\]$/.exec(s)
-      return m ? { n: Number(m[1]) } : { text: s }
-    })
+  const pieces: Piece[] = []
+  for (const s of text.split(/(\[\d+(?:\s*,\s*\d+)*\])/).filter(Boolean)) {
+    const m = /^\[(\d+(?:\s*,\s*\d+)*)\]$/.exec(s)
+    if (m) for (const n of m[1].split(',')) pieces.push({ n: Number(n.trim()) })
+    else pieces.push({ text: s })
+  }
+  return pieces
 }
 
 export async function* streamChat(

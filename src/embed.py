@@ -1,26 +1,26 @@
-"""Embedding via the configured model (embedding.model). Loaded once and cached; both ingest and query use it
-so their vectors can never drift apart.
+"""Embedding via sentence-transformers. Models are loaded once and cached by name; ingest and
+query both use embedding.model so their vectors can never drift apart. The Semantic Router
+passes its own (router.encoder) model name.
 """
 import os
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")  # model is cached locally; skip the update check
+os.environ.setdefault("HF_HUB_OFFLINE", "1")  # models are cached locally; skip the update check
 
 from sentence_transformers import SentenceTransformer
 
-from src.config import settings
+from src import config
 
-_model = None
-
-
-def get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer(settings.embedding.model)
-    return _model
+_models: dict[str, SentenceTransformer] = {}
 
 
-def embed(texts: list[str]) -> list[list[float]]:
-    """Embed a batch of texts. Returns 384-dim vectors."""
-    model = get_model()
-    embeddings = model.encode(texts, convert_to_numpy=True)
+def get_model(name: str | None = None) -> SentenceTransformer:
+    name = name or config.settings.embedding.model
+    if name not in _models:
+        _models[name] = SentenceTransformer(name)
+    return _models[name]
+
+
+def embed(texts: list[str], model: str | None = None) -> list[list[float]]:
+    """Embed a batch of texts with the configured (or given) model."""
+    embeddings = get_model(model).encode(texts, convert_to_numpy=True)
     return [emb.tolist() for emb in embeddings]

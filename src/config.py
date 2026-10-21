@@ -44,6 +44,16 @@ class Retrieval(BaseModel):
 
 class Router(BaseModel):
     encoder: str
+    routes_file: str = "config/routes.yaml"
+    threshold: float = 0.35
+    combined_margin: float = 0.05
+
+
+class Agent(BaseModel):
+    history_turns: int = 6
+    max_tool_rounds: int = 3
+    max_tool_result_chars: int = 8000
+    mcp_module: str = "tools.mcp_server"
 
 
 class HuggingFace(BaseModel):
@@ -92,6 +102,7 @@ class Settings(BaseSettings):
     database: Database
     retrieval: Retrieval
     router: Router
+    agent: Agent
     huggingface: HuggingFace
     benchmarks: Benchmarks
     api: Api

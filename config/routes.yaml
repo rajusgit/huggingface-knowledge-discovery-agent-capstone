@@ -1,0 +1,65 @@
+# Semantic Router example utterances per intent. Edit here; no code change needed.
+routes:
+  learn:
+    - How do I use the generate method in Transformers?
+    - What does max_new_tokens do?
+    - Explain how tokenizers work
+    - How do I fine-tune a model with the Trainer API?
+    - What is the difference between a pipeline and AutoModel?
+    - How do I load a dataset with the datasets library?
+    - How do I encode sentences with sentence-transformers?
+    - What is attention masking and why is it needed?
+    - How do I save and push a model to the Hub?
+    - What is a chat template?
+    - How can I reduce memory usage when loading a large model?
+    - Show me an example of text generation with sampling
+    - What is top-p sampling and how does it work?
+    - How does beam search differ from greedy decoding?
+    - What is a generation config and which options does it have?
+    - Why does my model output repeat itself?
+  discover:
+    - Find embedding models for French
+    - Search for text classification models on Hugging Face
+    - Which datasets are available for question answering?
+    - Show me popular multilingual sentence-transformers models
+    - List the most downloaded summarization models
+    - Find datasets with a CC-BY license
+    - What models exist for speech recognition?
+    - Look up the model sentence-transformers/all-MiniLM-L6-v2
+    - Show details for the squad dataset
+    - Find small CPU-friendly models for retrieval
+    - Are there any Arabic NER datasets?
+    - Recommend a model for sentiment analysis
+    - Get the metadata, license and tags for a given model repository
+    - Tell me about the dataset org/name on the Hub
+    - Which models are trending right now?
+  compare:
+    - Compare all-MiniLM-L6-v2 and bge-small-en
+    - Which is better for multilingual search, model A or model B?
+    - Side by side comparison of these two embedding models
+    - How do these two models differ in size and license?
+    - What are the trade-offs between mpnet and MiniLM?
+    - Compare the licenses of these models
+    - Which of these models is smaller and faster on CPU?
+    - Is the first model better than the second one?
+    - Compare parameter counts of the two models
+    - Pros and cons of e5-small versus bge-small
+    - Which one supports more languages?
+    - How does the second one compare to the first?
+  evaluate:
+    - Benchmark these two embedding models on a retrieval task
+    - Run a benchmark of all-MiniLM-L6-v2
+    - Measure Recall@5 for this model
+    - Evaluate the retrieval quality of the two models
+    - How fast is this model on my CPU?
+    - Test the latency and memory of the embedding model
+    - Run an evaluation on the sample dataset
+    - Which model scores higher on nDCG in a quick test?
+    - Compute MRR for both models
+    - Can you benchmark them and report the results?
+    - Measure encoding speed for these models
+    - Run a reproducible retrieval benchmark
+    - Please run the benchmark on the models
+    - Benchmark these models on a small dataset
+    - Time how long encoding takes and report recall
+    - Run an evaluation of the models and show me the numbers

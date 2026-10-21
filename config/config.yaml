@@ -40,6 +40,15 @@ retrieval:
 
 router:
   encoder: "all-MiniLM-L6-v2"      # Semantic Router encoder; swappable
+  routes_file: "config/routes.yaml"
+  threshold: 0.35                  # min cosine similarity to accept a route (else out_of_scope)
+  combined_margin: 0.05            # a 2nd route within this margin makes the intent combined
+
+agent:
+  history_turns: 6                 # past turns shown to the LLM when memory is on
+  max_tool_result_chars: 8000      # tool output is truncated to this before the LLM sees it
+  max_tool_rounds: 3               # LLM <-> MCP tool-calling rounds per question
+  mcp_module: "tools.mcp_server"   # launched as a local stdio MCP server
 
 huggingface:
   base_url: "https://huggingface.co"

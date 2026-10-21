@@ -35,3 +35,8 @@ def test_no_context_refuses_without_calling_llm(monkeypatch):
     monkeypatch.setattr(rag.llm, "complete", boom)
     out = rag.answer("what?")
     assert "can't answer" in out["answer"].lower() and out["citations"] == []
+
+
+def test_extract_citations_handles_comma_lists():
+    ok, bad = prompts.extract_citations("Set it [1, 6] or [2,3]; also [9, 1].", 6)
+    assert ok == [1, 2, 3, 6] and bad == [9]

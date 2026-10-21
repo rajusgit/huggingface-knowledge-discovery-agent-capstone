@@ -29,3 +29,9 @@ describe('splitCitations', () => {
     ])
   })
 })
+
+describe('splitCitations with comma lists', () => {
+  it('expands [1, 6] into separate markers', () => {
+    expect(splitCitations('see [1, 6].')).toEqual([{ text: 'see ' }, { n: 1 }, { n: 6 }, { text: '.' }])
+  })
+})
