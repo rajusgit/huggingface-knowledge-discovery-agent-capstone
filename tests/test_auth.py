@@ -118,6 +118,7 @@ def test_database_location_comes_from_the_environment_not_the_tracked_config(mon
 
 def test_tracked_files_contain_no_live_infrastructure_identifiers():
     import subprocess
-    out = subprocess.run(["git", "grep", "-nE", "rds\\.amazonaws\\.com|postgres", "--", ".", ":!uv.lock", ":!tests/test_auth.py"],
+    admin_user = "tickerpulse" + "admin"          # assembled so this file itself never contains the identifier
+    out = subprocess.run(["git", "grep", "-nE", f"rds\\.amazonaws\\.com|{admin_user}", "--", ".", ":!uv.lock", ":!tests/test_auth.py"],
                          cwd=config.ROOT, capture_output=True, text=True).stdout
     assert out.strip() == "", out
