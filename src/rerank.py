@@ -1,19 +1,24 @@
-"""Cross-encoder reranking (model from retrieval.reranker). Loaded once."""
+"""Cross-encoder reranking (model from retrieval.reranker). Loaded once; loading and scoring share one
+lock (see src/embed.py for why)."""
+import threading
+
 from src import config
 
 _model = None
+_lock = threading.Lock()
 
 
 def _predict(pairs):
     global _model
-    if _model is None:
-        from sentence_transformers import CrossEncoder
+    with _lock:
+        if _model is None:
+            from sentence_transformers import CrossEncoder
 
-        name = config.settings.retrieval.reranker
-        if not name:
-            raise ValueError("no reranker configured (retrieval.reranker is empty)")
-        _model = CrossEncoder(name)
-    return _model.predict(pairs)
+            name = config.settings.retrieval.reranker
+            if not name:
+                raise ValueError("no reranker configured (retrieval.reranker is empty)")
+            _model = CrossEncoder(name, device=config.settings.embedding.device)
+        return _model.predict(pairs)
 
 
 def score(query: str, passages: list[str], scorer=None) -> list[float]:

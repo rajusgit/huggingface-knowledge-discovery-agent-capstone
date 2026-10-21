@@ -26,6 +26,7 @@ class Database(BaseModel):
 class Embedding(BaseModel):
     model: str
     tokenizer: str
+    device: str = "cpu"
     dim: int
 
 

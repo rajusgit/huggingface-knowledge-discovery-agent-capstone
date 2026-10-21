@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from agents import guards
 from src import config
 from tools import benchmarks, compare, hf_client
 
@@ -87,7 +88,7 @@ def _persist(thread_id: str, question: str, final: dict, latency_ms: int) -> Non
         )
 
 
-async def _events(stream, *, memory: bool, thread_id: str, question: str | None):
+async def _events(stream, *, memory: bool, thread_id: str, question: str | None, pre_events: list[dict] | None = None):
     start = time.perf_counter()
     state: dict = {}
     streamed = awaiting = False
@@ -121,12 +122,12 @@ async def _events(stream, *, memory: bool, thread_id: str, question: str | None)
             "live_sources": state.get("live_sources", []),
             "tool_results": state.get("live", []),
             "benchmarks": state.get("benchmarks", []),
-            "guard_events": [],
+            "guard_events": (pre_events or []) + state.get("guard_events", []),
         }
         # ponytail: resumed (approval) turns aren't written to `messages`; the question isn't known here
         if memory and question is not None:  # nothing is stored for memory-off turns
             try:
-                await asyncio.to_thread(_persist, thread_id, question, final,
+                await asyncio.to_thread(_persist, thread_id, state.get("question") or question, final,
                                         int((time.perf_counter() - start) * 1000))
             except Exception:
                 log.exception("persisting chat turn failed")
@@ -138,9 +139,11 @@ async def _events(stream, *, memory: bool, thread_id: str, question: str | None)
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
-    stream = request.app.state.agent.astream(req.message, req.thread_id, memory=req.memory)
+    # Mask PII *before* the graph runs: LangGraph checkpoints its input, so a later node would be too late.
+    masked, pre_events = guards.mask_pii(req.message)
+    stream = request.app.state.agent.astream(masked, req.thread_id, memory=req.memory)
     return StreamingResponse(
-        _events(stream, memory=req.memory, thread_id=req.thread_id, question=req.message),
+        _events(stream, memory=req.memory, thread_id=req.thread_id, question=masked, pre_events=pre_events),
         media_type="text/event-stream")
 
 
@@ -228,3 +231,12 @@ def get_benchmark(job_id: uuid.UUID) -> dict:
     if rec is None:
         raise HTTPException(404, "benchmark job not found")
     return benchmarks.jsonable(rec)
+
+
+@app.get("/api/evals/variants")
+def eval_variants() -> dict:
+    """The saved 16-variant leaderboard (written by standalone-scripts/run_evals.py)."""
+    path = config.ROOT / config.settings.evals.results_file
+    if not path.is_file():
+        return {"variants": [], "winner": None, "message": "The variant experiment has not been run yet."}
+    return json.loads(path.read_text())

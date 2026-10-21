@@ -1,6 +1,6 @@
 """LangGraph agent (hand-built nodes; every LLM call goes through src.llm).
 
-START -> classify_intent -+-> [retrieve_docs] -> [call_mcp_tools] -+-> validate_evidence
+START -> guard_input -> classify_intent -+-> [retrieve_docs] -> [call_mcp_tools] -+-> validate_evidence
                           |                                        |
                           +-> plan_benchmark -> authorize_benchmark (human approval, interrupt)
                                 -> enqueue_job -> poll_results ----+
@@ -23,6 +23,7 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
+from agents import guards as guards_mod
 from agents import router as router_mod
 from src import config, llm, prompts, retrieval
 from tools import benchmarks
@@ -41,6 +42,8 @@ class State(TypedDict, total=False):
     bench_jobs: list[str]
     benchmarks: list[dict]
     refused: bool
+    blocked: bool
+    guard_events: list[dict]
     answer: str
     citations: list[dict]
     invalid_citations: list[int]
@@ -89,7 +92,7 @@ def _refuse(message: str) -> dict:
     return {"refused": True, "answer": message}
 
 
-def build_graph(router, tools, checkpointer):
+def build_graph(router, tools, checkpointer, guard):
     cfg = config.settings.agent
     bcfg = config.settings.benchmarks
     tools = tools or []
@@ -98,6 +101,17 @@ def build_graph(router, tools, checkpointer):
 
     def hist(state: State) -> list[dict]:
         return state.get("history", [])[-2 * cfg.history_turns:] if state.get("use_history", True) else []
+
+    def guard_input(state: State):
+        res = guard.check(state["question"])
+        update = {"question": res.text, "guard_events": res.events, "blocked": res.blocked}
+        if res.blocked:  # skip the whole pipeline; the blocked text is never kept as context
+            update |= {"routes": [], "chunks": [], "live": [], "benchmarks": [], "citations": [], "invalid_citations": [],
+                       "live_sources": [], "bench_plan": {}, "bench_jobs": [], "refused": True, "answer": prompts.BLOCKED_ANSWER}
+        return update
+
+    def after_guard(state: State) -> str:
+        return "validate_evidence" if state["blocked"] else "classify_intent"
 
     def classify_intent(state: State):
         intent = router.classify(state["question"])
@@ -118,7 +132,7 @@ def build_graph(router, tools, checkpointer):
         return lambda state: "validate_evidence" if state.get("refused") else nxt
 
     def retrieve_docs(state: State):
-        hits = retrieval.search_knowledge(state["question"])
+        hits = retrieval.retrieve(state["question"])
         return {"chunks": [c for c in hits if c.get("content")]}
 
     async def call_mcp_tools(state: State):
@@ -248,14 +262,17 @@ def build_graph(router, tools, checkpointer):
         return {"citations": [{**state["chunks"][n - 1], "n": n} for n in ok], "invalid_citations": bad}
 
     def respond(state: State):
+        if state.get("blocked"):
+            return {}
         return {"history": [{"role": "user", "content": state["question"]},
                             {"role": "assistant", "content": state["answer"]}]}
 
     g = StateGraph(State)
-    for fn in (classify_intent, retrieve_docs, call_mcp_tools, plan_benchmark, authorize_benchmark,
+    for fn in (guard_input, classify_intent, retrieve_docs, call_mcp_tools, plan_benchmark, authorize_benchmark,
                enqueue_job, poll_results, validate_evidence, synthesize, verify_citations, respond):
         g.add_node(fn.__name__, fn)
-    g.add_edge(START, "classify_intent")
+    g.add_edge(START, "guard_input")
+    g.add_conditional_edges("guard_input", after_guard, ["classify_intent", "validate_evidence"])
     g.add_conditional_edges("classify_intent", after_classify,
                             ["retrieve_docs", "call_mcp_tools", "plan_benchmark", "validate_evidence"])
     g.add_conditional_edges("retrieve_docs", after_docs, ["call_mcp_tools", "validate_evidence"])
@@ -273,7 +290,7 @@ def build_graph(router, tools, checkpointer):
     return g.compile(checkpointer=checkpointer)
 
 
-RESULT_KEYS = ("answer", "citations", "invalid_citations", "live_sources", "live", "routes", "benchmarks")
+RESULT_KEYS = ("answer", "citations", "invalid_citations", "live_sources", "live", "routes", "benchmarks", "guard_events")
 
 
 class Agent:
@@ -332,6 +349,6 @@ class Agent:
         return self._stream(Command(resume={"approved": approved}), thread_id, memory)
 
 
-def build_agent(router=None, tools=None, checkpointer=None) -> Agent:
+def build_agent(router=None, tools=None, checkpointer=None, guard=None) -> Agent:
     saver = checkpointer if checkpointer is not None else InMemorySaver()
-    return Agent(build_graph(router or router_mod.load_router(), tools, saver), saver)
+    return Agent(build_graph(router or router_mod.load_router(), tools, saver, guard or guards_mod.load_guard()), saver)

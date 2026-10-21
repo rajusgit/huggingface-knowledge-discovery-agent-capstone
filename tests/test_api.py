@@ -118,6 +118,29 @@ def test_persist_failure_does_not_break_the_response(monkeypatch, agent):
     assert ev[-1]["type"] == "final"
 
 
+def test_pii_is_masked_before_the_agent_and_in_storage(monkeypatch):
+    class Spy(FakeAgent):
+        pass
+    spy = Spy(EVENTS[:3] + [("updates", {"guard_input": {"question": "mail me [EMAIL]", "guard_events": []}})] + EVENTS[3:])
+    api.app.state.agent = spy
+    saved = []
+    monkeypatch.setattr(api, "_persist", lambda tid, q, final, ms: saved.append(q))
+    try:
+        ev = sse(TestClient(api.app).post("/api/chat", json={"message": "mail me jane@example.com", "thread_id": "t1", "memory": True}))
+    finally:
+        del api.app.state.agent
+    assert spy.calls[0][0] == "mail me [EMAIL]"                       # the graph never sees the raw address
+    assert saved == ["mail me [EMAIL]"]                               # nor does the database
+    assert {"type": "pii_masked", "kind": "email", "count": 1} in ev[-1]["guard_events"]
+
+
+def test_guard_events_from_the_graph_reach_the_client(agent, client):
+    agent.events = [("updates", {"guard_input": {"question": "q", "guard_events": [{"type": "blocked", "reason": "potentially_harmful"}]}}),
+                    ("updates", {"validate_evidence": {"answer": "I can't help with that request."}})]
+    final = sse(post(client))[-1]
+    assert final["guard_events"] == [{"type": "blocked", "reason": "potentially_harmful"}]
+
+
 def test_cors_allows_configured_origin(client):
     r = client.options("/api/chat", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST"})
     assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"

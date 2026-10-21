@@ -15,6 +15,7 @@ llm:
 embedding:
   model: "all-MiniLM-L6-v2"
   tokenizer: "sentence-transformers/all-MiniLM-L6-v2"   # HybridChunker counts tokens with this
+  device: "cpu"                    # encoder + reranker device. Explicit on purpose: auto-selected Apple MPS crashed under threads
   dim: 384
 
 database:

@@ -220,7 +220,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 
 ## Phase 5: Security
 
-### - [ ] T21: Input guards: guardrails + PII masking (required)
+### - [x] T21 (NeMo library NOT used: in-house self-check rail via src.llm, same technique; semantic layer alone blocks 67% of golden adversarial prompts, with the LLM self-check 100%, 0 false positives in 124 benign): Input guards: guardrails + PII masking (required)
 **Description:** Guardrails and PII masking are required deliverables (D3), hand-built because the course middleware isn't available with the raw SDK. `agents/guards.py`: Semantic Router guard with `off_topic` / `potentially_harmful` routes before any LLM call (routing_with_guardrails `SimpleSemanticRouterGuardrail`; encoder + thresholds from config); PII masking for email/credit card (plus phone) on input and before logging/tracing, mirroring `PIIMiddleware` `strategy='mask'`; NeMo Guardrails self-check input via `LLMRails`, with its LLM calls routed through `src.llm.complete` by a custom provider in `agents/nemo_llm.py` (D2a; same model). Wired as the first graph node; emits `guard_events`.
 **Acceptance criteria:**
 - [ ] Off-topic/harmful prompts are refused with zero synthesis LLM calls

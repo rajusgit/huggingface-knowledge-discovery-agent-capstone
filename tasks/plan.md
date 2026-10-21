@@ -108,7 +108,7 @@ Full task details (acceptance criteria, verification, files) are in `tasks/todo.
 **Checkpoint E — Experiments:** 16-row leaderboard reproducible; best measured config recorded in config.yaml.
 
 ### Phase 5: Security
-- [ ] T21: Input guards: Semantic Router guard, PII masking, NeMo self-check input
+- [x] T21: Input guards: Semantic Router guard, PII masking, NeMo self-check input
 - [ ] T22: Injection defence, retrieval-time redaction, output checks, `html.escape`
 - [ ] T23: Tool safety (allowlist, docstring vetting) + red-team suite and report
 
