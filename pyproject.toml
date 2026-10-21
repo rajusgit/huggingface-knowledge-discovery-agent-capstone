@@ -12,6 +12,8 @@ dependencies = [
     "openai>=3.35.1",
     "docling>=2.141.0",
     "sentence-transformers>=6.1.0",
+    "fastapi>=0.156.4",
+    "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]

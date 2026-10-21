@@ -72,7 +72,7 @@ Commands assume `uv` from repo root. Unit tests: `uv run pytest tests/<file> -q`
 **Verification:** `uv run python standalone-scripts/ask.py "How do I set max_new_tokens?"` shows answer + URL + breadcrumb; `uv run pytest tests/test_retrieval.py -q`
 **Dependencies:** T4, T5 · **Files:** `src/retrieval.py` (replaces `src/tools.py`), `src/prompts.py`, `standalone-scripts/ask.py`, `tests/test_retrieval.py` · **Scope:** M
 
-### - [ ] T7: FastAPI `/api/chat` (RAG-only, SSE)
+### - [x] T7: FastAPI `/api/chat` (RAG-only, SSE)
 **Description:** `src/api.py` with `POST /api/chat {message, thread_id, pipeline_variant}` → SSE stream of tokens, then a final event with citations. CORS for the Vite dev origin (course: mcp-client `fastapi_server.py`). `src/main.py` runs uvicorn.
 **Acceptance criteria:**
 - [ ] Streams tokens; final event JSON has `citations[]` and `guard_events[]` (empty for now)

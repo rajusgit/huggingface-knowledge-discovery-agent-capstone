@@ -54,6 +54,9 @@ benchmarks:
 api:
   auth_enabled: false              # true on Railway; key comes from env API_KEY
   cors_origins: ["http://localhost:5173"]
+  host: "127.0.0.1"
+  port: 8000
+  max_message_chars: 2000
 
 ingest:
   sources_file: "config/sources.yaml"

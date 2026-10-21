@@ -70,6 +70,9 @@ class Ingest(BaseModel):
 class Api(BaseModel):
     auth_enabled: bool = False
     cors_origins: list[str] = []
+    host: str = "127.0.0.1"
+    port: int = 8000
+    max_message_chars: int = 2000
 
 
 class Settings(BaseSettings):
