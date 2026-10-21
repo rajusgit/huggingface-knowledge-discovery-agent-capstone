@@ -1,0 +1,8 @@
+# ─── LLM Provider ────────────────────────────────────────────────────────────
+llm:
+  provider: "localllm"                     # Main provider (can be overridden per tier)
+  provider_overrides: {}                   # Override provider for specific tiers
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"     # OpenRouter (used by screener_batch_run.py); any OpenAI-compatible server works
+    api_key: "${OPENROUTER_API_KEY}"
+      analyst:           "google/gemini-3.5-flash-lite"
