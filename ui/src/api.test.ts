@@ -121,3 +121,30 @@ describe('benchmarkRows', () => {
     expect(rows[1].value).toContain('600s')
   })
 })
+
+import { leaderboardRows, type LeaderboardData } from './api'
+
+const lb = (): LeaderboardData => ({
+  experiment_id: 'exp-1',
+  winner: { variant: 'b|hybrid|rerank' },
+  variants: [
+    { variant: 'a|dense|norerank', dev: { composite: 0.5, 'recall@5': { mean: 0.6, ci_low: 0.4, ci_high: 0.8, n: 10 } }, heldout: { composite: 0.4 }, latency_p50_ms: 100, latency_p95_ms: 200, retrieval_p50_ms: 10, retrieval_p95_ms: 20, cost_per_query: 0.001 },
+    { variant: 'b|hybrid|rerank', dev: { composite: 0.9, 'recall@5': { mean: 0.95, ci_low: 0.8, ci_high: 1, n: 10 } }, heldout: { composite: 0.85 }, latency_p50_ms: 300, latency_p95_ms: 500, retrieval_p50_ms: 30, retrieval_p95_ms: 50, cost_per_query: 0.002 },
+  ],
+})
+
+describe('leaderboardRows', () => {
+  it('sorts by dev composite, flags the winner and formats cells', () => {
+    const rows = leaderboardRows(lb())
+    expect(rows.map((r) => r.variant)).toEqual(['b|hybrid|rerank', 'a|dense|norerank'])
+    expect(rows[0].isWinner).toBe(true)
+    expect(rows[0].recall).toBe('0.95 [0.80, 1.00]')
+    expect(rows[0].devComposite).toBe('0.900')
+    expect(rows[1].cost).toBe('0.00100')
+  })
+  it('shows a dash for missing scores', () => {
+    const d = lb()
+    d.variants[0].heldout.composite = null
+    expect(leaderboardRows(d).find((r) => r.variant.startsWith('a'))!.heldoutComposite).toBe('—')
+  })
+})

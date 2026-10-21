@@ -152,6 +152,51 @@ export async function searchHub(kind: HubKind, f: SearchFilters, signal?: AbortS
   return (await res.json()) as HubResponse
 }
 
+export interface MetricSummary { mean: number | null; ci_low: number | null; ci_high: number | null; n: number }
+export interface VariantRow {
+  variant: string
+  dev: Record<string, MetricSummary | number | null>
+  heldout: Record<string, MetricSummary | number | null>
+  latency_p50_ms: number
+  latency_p95_ms: number
+  retrieval_p50_ms: number
+  retrieval_p95_ms: number
+  cost_per_query: number
+}
+export interface LeaderboardData {
+  experiment_id?: string
+  winner?: { variant: string } | null
+  variants: VariantRow[]
+  message?: string
+}
+
+export function leaderboardRows(d: LeaderboardData) {
+  const num = (v: unknown) => (typeof v === 'number' ? v : null)
+  const f3 = (v: number | null) => (v === null ? '—' : v.toFixed(3))
+  return [...d.variants]
+    .sort((a, b) => (num(b.dev.composite) ?? -1) - (num(a.dev.composite) ?? -1))
+    .map((r) => {
+      const rec = r.dev['recall@5'] as MetricSummary | undefined
+      return {
+        variant: r.variant,
+        isWinner: d.winner?.variant === r.variant,
+        devComposite: f3(num(r.dev.composite)),
+        heldoutComposite: f3(num(r.heldout.composite)),
+        recall: rec?.mean == null ? '—' : `${rec.mean.toFixed(2)} [${rec.ci_low!.toFixed(2)}, ${rec.ci_high!.toFixed(2)}]`,
+        p50: Math.round(r.retrieval_p50_ms),
+        p95: Math.round(r.retrieval_p95_ms),
+        e2eP95: Math.round(r.latency_p95_ms),
+        cost: r.cost_per_query.toFixed(5),
+      }
+    })
+}
+
+export async function fetchLeaderboard(signal?: AbortSignal): Promise<LeaderboardData> {
+  const res = await fetch(`${API_URL}/api/evals/variants`, { signal })
+  if (!res.ok) throw new Error(`Request failed (${res.status})`)
+  return (await res.json()) as LeaderboardData
+}
+
 export const fmtMetric = (v: number | null | undefined): string => (v === null || v === undefined ? '—' : v.toFixed(3))
 
 /** Table rows (label/value) for one benchmark run: quality, speed, then provenance. */
